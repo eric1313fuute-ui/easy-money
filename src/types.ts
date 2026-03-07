@@ -68,6 +68,7 @@ export interface AppSettings {
   language: Language;
   genieBillingDay: number;
   monthlyBudget: number;
+  dailyBudget: number;
 }
 
 export type Tab = 'DASHBOARD' | 'GENIE' | 'ADD' | 'SPLIT' | 'STATS';

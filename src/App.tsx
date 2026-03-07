@@ -181,6 +181,26 @@ const SettingsModal = ({
             </div>
 
             <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.monthlyBudget}</label>
+              <input 
+                type="number" 
+                value={settings.monthlyBudget}
+                onChange={e => setSettings({ ...settings, monthlyBudget: Number(e.target.value) })}
+                className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.dailyBudget}</label>
+              <input 
+                type="number" 
+                value={settings.dailyBudget}
+                onChange={e => setSettings({ ...settings, dailyBudget: Number(e.target.value) })}
+                className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.billingDay}</label>
               <input 
                 type="number" 
@@ -734,25 +754,25 @@ const Dashboard = ({
       </div>
     </div>
 
-    {/* Budget Card */}
+    {/* Daily Budget Card */}
     <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.budget}</p>
-          <p className="text-slate-800 font-bold text-xl">{formatCurrency(stats.budget)}</p>
+          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.dailyBudget}</p>
+          <p className="text-slate-800 font-bold text-xl">{formatCurrency(stats.dailyBudget)}</p>
         </div>
         <div className="text-right">
           <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.remaining}</p>
-          <p className={`font-bold text-xl ${stats.budgetRemaining < 0 ? 'text-rose-500' : 'text-blue-600'}`}>
-            {formatCurrency(stats.budgetRemaining)}
+          <p className={`font-bold text-xl ${stats.dailyRemaining < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+            {formatCurrency(stats.dailyRemaining)}
           </p>
         </div>
       </div>
       <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
         <motion.div 
           initial={{ width: 0 }}
-          animate={{ width: `${Math.min(100, (stats.expense / stats.budget) * 100)}%` }}
-          className={`h-full rounded-full ${stats.expense > stats.budget ? 'bg-rose-500' : 'bg-blue-600'}`}
+          animate={{ width: `${Math.min(100, (stats.dailyExpense / stats.dailyBudget) * 100)}%` }}
+          className={`h-full rounded-full ${stats.dailyExpense > stats.dailyBudget ? 'bg-rose-500' : 'bg-emerald-600'}`}
         ></motion.div>
       </div>
     </div>
@@ -1282,7 +1302,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
   const [settings, setSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('app_settings');
-    return saved ? JSON.parse(saved) : { language: Language.ZH, genieBillingDay: 10, monthlyBudget: 20000 };
+    return saved ? JSON.parse(saved) : { language: Language.ZH, genieBillingDay: 10, monthlyBudget: 20000, dailyBudget: 500 };
   });
 
   const [basicRecords, setBasicRecords] = useState<BasicRecord[]>(() => {
@@ -1400,14 +1420,22 @@ export default function App() {
     const totalBalance = basicRecords.reduce((sum, r) => r.type === RecordType.INCOME ? sum + r.amount : sum - r.amount, 0);
     const remainingBudget = settings.monthlyBudget - expense;
 
+    const todayStr = getToday();
+    const dailyExpense = basicRecords
+      .filter(r => r.date === todayStr && r.type === RecordType.EXPENSE)
+      .reduce((sum, r) => sum + r.amount, 0);
+
     return { 
       income, 
       expense, 
       balance: totalBalance, 
       budget: settings.monthlyBudget, 
-      budgetRemaining: remainingBudget 
+      budgetRemaining: remainingBudget,
+      dailyBudget: settings.dailyBudget,
+      dailyExpense,
+      dailyRemaining: settings.dailyBudget - dailyExpense
     };
-  }, [basicRecords, settings.monthlyBudget]);
+  }, [basicRecords, settings.monthlyBudget, settings.dailyBudget]);
 
   const genieCycles = useMemo(() => {
     const cycles: Record<string, GeniePayRecord[]> = {};
