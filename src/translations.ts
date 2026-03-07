@@ -4,6 +4,7 @@ export const translations = {
   [Language.ZH]: {
     appName: '輕鬆記帳',
     dashboard: '總覽',
+    basic: '記帳',
     geniePay: '神燈',
     add: '新增',
     split: '分帳',
@@ -65,6 +66,7 @@ export const translations = {
   [Language.EN]: {
     appName: 'Easy Accounting',
     dashboard: 'Dashboard',
+    basic: 'Basic',
     geniePay: 'Genie',
     add: 'Add',
     split: 'Split',

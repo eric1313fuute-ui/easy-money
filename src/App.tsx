@@ -12,6 +12,7 @@ import {
   Search, 
   Settings as SettingsIcon,
   ChevronRight,
+  ChevronLeft,
   Trash2,
   Edit3,
   X,
@@ -732,70 +733,153 @@ const Dashboard = ({
   setActiveTab: (tab: Tab) => void, 
   setSelectedRecord: (rec: any) => void, 
   formatCurrency: (val: number) => string 
-}) => (
-  <div className="p-4 space-y-6 pb-24">
-    {/* Summary Card */}
-    <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-      <div className="relative z-10">
-        <p className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-1">{t.balance}</p>
-        <h2 className="text-4xl font-bold tracking-tight">{formatCurrency(stats.balance)}</h2>
+}) => {
+  const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const dailyData = useMemo(() => {
+    const records = basicRecords.filter(r => r.date === viewDate);
+    const expense = records
+      .filter(r => r.type === RecordType.EXPENSE)
+      .reduce((sum, r) => sum + r.amount, 0);
+    return {
+      records,
+      expense,
+      remaining: stats.dailyBudget - expense
+    };
+  }, [basicRecords, viewDate, stats.dailyBudget]);
+
+  const changeDate = (days: number) => {
+    const d = new Date(viewDate);
+    d.setDate(d.getDate() + days);
+    setViewDate(d.toISOString().split('T')[0]);
+  };
+
+  const isToday = viewDate === new Date().toISOString().split('T')[0];
+
+  return (
+    <div className="p-4 space-y-6 pb-24">
+      {/* Summary Card */}
+      <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
+        {/* Decorative Patterns */}
+        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/20 rounded-full -mr-24 -mt-24 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full -ml-16 -mb-16 blur-2xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.03] pointer-events-none">
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+        </div>
         
-        <div className="grid grid-cols-2 gap-6 mt-8 pt-6 border-t border-white/10">
-          <div>
-            <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{t.income}</p>
-            <p className="text-emerald-400 font-bold text-lg">+{formatCurrency(stats.income)}</p>
+        <div className="relative z-10">
+          <div className="flex justify-between items-start mb-1">
+            <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">{t.totalBalance}</p>
+            <span className="bg-white/10 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-tighter text-white/60">
+              Cycle: {stats.currentCycleKey}
+            </span>
           </div>
-          <div>
-            <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{t.expense}</p>
-            <p className="text-rose-400 font-bold text-lg">-{formatCurrency(stats.expense)}</p>
+          <h2 className="text-4xl font-bold tracking-tight">{formatCurrency(stats.balance)}</h2>
+          
+          <div className="grid grid-cols-2 gap-6 mt-8 pt-6 border-t border-white/10">
+            <div>
+              <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{t.income}</p>
+              <p className="text-emerald-400 font-bold text-lg">+{formatCurrency(stats.income)}</p>
+            </div>
+            <div>
+              <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{t.expense}</p>
+              <p className="text-rose-400 font-bold text-lg">-{formatCurrency(stats.expense)}</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    {/* Daily Budget Card */}
-    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.dailyBudget}</p>
-          <p className="text-slate-800 font-bold text-xl">{formatCurrency(stats.dailyBudget)}</p>
+      {/* Daily Budget Card */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button onClick={() => changeDate(-1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
+              <ChevronLeft size={16} className="text-slate-400" />
+            </button>
+            <div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                {isToday ? t.dailyBudget : viewDate}
+              </p>
+              <p className="text-slate-800 font-bold text-xl">{formatCurrency(stats.dailyBudget)}</p>
+            </div>
+            <button onClick={() => changeDate(1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
+              <ChevronRight size={16} className="text-slate-400" />
+            </button>
+          </div>
+          <div className="text-right">
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.remaining}</p>
+            <p className={`font-bold text-xl ${dailyData.remaining < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+              {formatCurrency(dailyData.remaining)}
+            </p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.remaining}</p>
-          <p className={`font-bold text-xl ${stats.dailyRemaining < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
-            {formatCurrency(stats.dailyRemaining)}
-          </p>
+        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+          <motion.div 
+            key={viewDate}
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(100, (dailyData.expense / stats.dailyBudget) * 100)}%` }}
+            className={`h-full rounded-full ${dailyData.expense > stats.dailyBudget ? 'bg-rose-500' : 'bg-emerald-600'}`}
+          ></motion.div>
         </div>
-      </div>
-      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-        <motion.div 
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.min(100, (stats.dailyExpense / stats.dailyBudget) * 100)}%` }}
-          className={`h-full rounded-full ${stats.dailyExpense > stats.dailyBudget ? 'bg-rose-500' : 'bg-emerald-600'}`}
-        ></motion.div>
-      </div>
-    </div>
 
-    {/* Recent Records */}
-    <div className="space-y-4">
-      <div className="flex items-center justify-between px-2">
-        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">{t.recent}</h3>
-        <button onClick={() => setActiveTab('STATS')} className="text-blue-600 text-xs font-bold">{t.search}</button>
-      </div>
-      <div className="space-y-3">
-        {basicRecords.slice(0, 10).map(r => (
-          <RecordItem key={r.id} record={r} onClick={() => setSelectedRecord({ type: 'BASIC', data: r })} t={t} />
-        ))}
-        {basicRecords.length === 0 && (
-          <div className="bg-white rounded-3xl p-12 text-center text-slate-400 border border-dashed border-slate-200">
-            {t.noRecords}
+        {/* Selected Date Records List */}
+        {dailyData.records.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-slate-50 space-y-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              {isToday ? "Today's Details" : `${viewDate} Details`}
+            </p>
+            {dailyData.records.map((r: BasicRecord) => (
+              <div key={r.id} className="flex items-center justify-between group cursor-pointer" onClick={() => setSelectedRecord({ type: 'BASIC', data: r })}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${r.type === RecordType.INCOME ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                    <span className="text-xs font-bold">{r.name.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">{r.name}</p>
+                    <p className="text-[10px] text-slate-400">{t.categories[r.category]}</p>
+                  </div>
+                </div>
+                <p className={`text-xs font-bold ${r.type === RecordType.INCOME ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {r.type === RecordType.INCOME ? '+' : '-'}{formatCurrency(r.amount)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        {dailyData.records.length === 0 && !isToday && (
+          <div className="mt-6 pt-6 border-t border-slate-50 text-center text-slate-400 text-xs">
+            No records for this day
           </div>
         )}
       </div>
+
+      {/* Recent Records */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">{t.recent}</h3>
+          <button onClick={() => setActiveTab('STATS')} className="text-blue-600 text-xs font-bold">{t.search}</button>
+        </div>
+        <div className="space-y-3">
+          {basicRecords.slice(0, 10).map(r => (
+            <RecordItem key={r.id} record={r} onClick={() => setSelectedRecord({ type: 'BASIC', data: r })} t={t} />
+          ))}
+          {basicRecords.length === 0 && (
+            <div className="bg-white rounded-3xl p-12 text-center text-slate-400 border border-dashed border-slate-200">
+              {t.noRecords}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, periodKey: string, basic: BasicRecord[], genie: GeniePayRecord[]) => {
   const totalBasic = basic.reduce((sum, r) => r.type === RecordType.EXPENSE ? sum + r.amount : sum - r.amount, 0);
@@ -1155,7 +1239,7 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
       <h2 className="text-2xl font-bold text-slate-800">{t.add}</h2>
       
       <div className="flex bg-slate-200 p-1 rounded-2xl">
-        <button onClick={() => setMode('BASIC')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'BASIC' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>{t.dashboard}</button>
+        <button onClick={() => setMode('BASIC')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'BASIC' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>{t.basic}</button>
         <button onClick={() => setMode('GENIE')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'GENIE' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500'}`}>{t.geniePay}</button>
         <button onClick={() => setMode('SPLIT')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'SPLIT' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}>{t.split}</button>
       </div>
@@ -1406,23 +1490,35 @@ export default function App() {
   // --- Calculations ---
   const stats = useMemo(() => {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    
+    const getCycleKey = (dateStr: string) => {
+      const d = new Date(dateStr);
+      let month = d.getMonth();
+      let year = d.getFullYear();
+      if (d.getDate() > settings.genieBillingDay) {
+        month += 1;
+        if (month > 11) {
+          month = 0;
+          year += 1;
+        }
+      }
+      return `${year}/${String(month + 1).padStart(2, '0')}`;
+    };
 
-    const monthlyBasic = basicRecords.filter(r => {
-      const d = new Date(r.date);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
+    const currentCycleKey = getCycleKey(now.toISOString().split('T')[0]);
 
-    const income = monthlyBasic.filter(r => r.type === RecordType.INCOME).reduce((sum, r) => sum + r.amount, 0);
-    const expense = monthlyBasic.filter(r => r.type === RecordType.EXPENSE).reduce((sum, r) => sum + r.amount, 0);
+    const cycleBasic = basicRecords.filter(r => getCycleKey(r.date) === currentCycleKey);
+
+    const income = cycleBasic.filter(r => r.type === RecordType.INCOME).reduce((sum, r) => sum + r.amount, 0);
+    const expense = cycleBasic.filter(r => r.type === RecordType.EXPENSE).reduce((sum, r) => sum + r.amount, 0);
     
     const totalBalance = basicRecords.reduce((sum, r) => r.type === RecordType.INCOME ? sum + r.amount : sum - r.amount, 0);
     const remainingBudget = settings.monthlyBudget - expense;
 
     const todayStr = getToday();
-    const dailyExpense = basicRecords
-      .filter(r => r.date === todayStr && r.type === RecordType.EXPENSE)
+    const dailyRecords = basicRecords.filter(r => r.date === todayStr);
+    const dailyExpense = dailyRecords
+      .filter(r => r.type === RecordType.EXPENSE)
       .reduce((sum, r) => sum + r.amount, 0);
 
     return { 
@@ -1433,9 +1529,11 @@ export default function App() {
       budgetRemaining: remainingBudget,
       dailyBudget: settings.dailyBudget,
       dailyExpense,
-      dailyRemaining: settings.dailyBudget - dailyExpense
+      dailyRemaining: settings.dailyBudget - dailyExpense,
+      dailyRecords,
+      currentCycleKey
     };
-  }, [basicRecords, settings.monthlyBudget, settings.dailyBudget]);
+  }, [basicRecords, settings.monthlyBudget, settings.dailyBudget, settings.genieBillingDay]);
 
   const genieCycles = useMemo(() => {
     const cycles: Record<string, GeniePayRecord[]> = {};
