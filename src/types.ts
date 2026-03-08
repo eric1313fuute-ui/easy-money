@@ -61,7 +61,8 @@ export interface RecurringPayment {
   period: RecurringPeriod;
   category: Category;
   target: 'BASIC' | 'GENIE';
-  lastProcessed?: string; // Date string
+  billingDay: number; // 1-31
+  lastProcessed?: string; // Date string (YYYY-MM)
 }
 
 export interface AppSettings {

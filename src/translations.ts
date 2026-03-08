@@ -51,6 +51,7 @@ export const translations = {
     totalCount: '總筆數',
     totalSum: '總額',
     noRecords: '尚無紀錄',
+    daySuffix: '號',
     confirmDelete: '確定要刪除嗎？',
     syncRepayment: '是否將此筆還款收入/代墊支出同步新增至基本記帳中？',
     categories: {
@@ -113,6 +114,7 @@ export const translations = {
     totalCount: 'Total Count',
     totalSum: 'Total Sum',
     noRecords: 'No records found',
+    daySuffix: '',
     confirmDelete: 'Are you sure you want to delete?',
     syncRepayment: 'Sync this repayment/advance to basic records?',
     categories: {

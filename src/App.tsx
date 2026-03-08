@@ -252,7 +252,9 @@ const SettingsModal = ({
                   <div key={rp.id} className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl">
                     <div>
                       <p className="font-bold text-slate-700 text-sm">{rp.name}</p>
-                      <p className="text-slate-400 text-[10px]">{formatCurrency(rp.amount)} • {rp.period === RecurringPeriod.MONTHLY ? t.monthly : t.weekly}</p>
+                      <p className="text-slate-400 text-[10px]">
+                        {formatCurrency(rp.amount)} • {rp.period === RecurringPeriod.MONTHLY ? `${t.monthly} (${rp.billingDay}${t.daySuffix})` : t.weekly}
+                      </p>
                     </div>
                     <button 
                       onClick={() => setConfirmData({
@@ -294,6 +296,16 @@ const SettingsModal = ({
                         <option value={RecurringPeriod.MONTHLY}>{t.monthly}</option>
                         <option value={RecurringPeriod.WEEKLY}>{t.weekly}</option>
                       </select>
+                      {newRecurring.period === RecurringPeriod.MONTHLY && (
+                        <input 
+                          type="number" 
+                          min="1" max="31"
+                          placeholder={t.billingDay}
+                          value={newRecurring.billingDay}
+                          onChange={e => setNewRecurring({ ...newRecurring, billingDay: Number(e.target.value) })}
+                          className="w-20 bg-white border-none rounded-xl px-3 py-2 text-xs"
+                        />
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button 
@@ -311,10 +323,11 @@ const SettingsModal = ({
                               amount: Number(newRecurring.amount),
                               period: newRecurring.period,
                               category: Category.OTHER,
-                              target: newRecurring.target
+                              target: newRecurring.target,
+                              billingDay: newRecurring.billingDay || 1
                             }]);
                             setIsAddingRecurring(false);
-                            setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC' });
+                            setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
                           }
                         }}
                         className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold"
@@ -1567,7 +1580,7 @@ export default function App() {
   const [confirmData, setConfirmData] = useState<{ title: string, onConfirm: () => void } | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAddingRecurring, setIsAddingRecurring] = useState(false);
-  const [newRecurring, setNewRecurring] = useState({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC' as 'BASIC' | 'GENIE' });
+  const [newRecurring, setNewRecurring] = useState({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC' as 'BASIC' | 'GENIE', billingDay: 1 });
 
   const t = translations[settings.language];
 
@@ -1589,42 +1602,61 @@ export default function App() {
       let changed = false;
 
       updatedRecurring = updatedRecurring.map(rp => {
-        if (rp.lastProcessed === todayStr) return rp;
+        const currentMonth = today.toISOString().slice(0, 7); // YYYY-MM
+        
+        if (rp.period === RecurringPeriod.MONTHLY) {
+          // If already processed this month, skip
+          if (rp.lastProcessed === currentMonth) return rp;
 
-        const lastDate = rp.lastProcessed ? new Date(rp.lastProcessed) : null;
-        let shouldProcess = false;
+          // If today is on or after the billing day, process it
+          if (today.getDate() >= (rp.billingDay || 1)) {
+            changed = true;
+            const record = {
+              id: generateId(),
+              name: `[Auto] ${rp.name}`,
+              amount: rp.amount,
+              date: todayStr,
+              category: rp.category,
+            };
 
-        if (!lastDate) {
-          shouldProcess = true;
-        } else {
-          if (rp.period === RecurringPeriod.MONTHLY) {
-            // Check if a month has passed
-            if (today.getMonth() !== lastDate.getMonth() || today.getFullYear() !== lastDate.getFullYear()) {
-              if (today.getDate() >= lastDate.getDate()) shouldProcess = true;
+            if (rp.target === 'BASIC') {
+              newBasic.push({ ...record, type: RecordType.EXPENSE });
+            } else {
+              newGenie.push(record);
             }
-          } else if (rp.period === RecurringPeriod.WEEKLY) {
+            return { ...rp, lastProcessed: currentMonth };
+          }
+        } else if (rp.period === RecurringPeriod.WEEKLY) {
+          if (rp.lastProcessed === todayStr) return rp;
+
+          const lastDate = rp.lastProcessed ? new Date(rp.lastProcessed) : null;
+          let shouldProcess = false;
+
+          if (!lastDate) {
+            shouldProcess = true;
+          } else {
             const diffTime = Math.abs(today.getTime() - lastDate.getTime());
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             if (diffDays >= 7) shouldProcess = true;
           }
-        }
 
-        if (shouldProcess) {
-          changed = true;
-          const record = {
-            id: generateId(),
-            name: `[Auto] ${rp.name}`,
-            amount: rp.amount,
-            date: todayStr,
-            category: rp.category,
-          };
+          if (shouldProcess) {
+            changed = true;
+            const record = {
+              id: generateId(),
+              name: `[Auto] ${rp.name}`,
+              amount: rp.amount,
+              date: todayStr,
+              category: rp.category,
+            };
 
-          if (rp.target === 'BASIC') {
-            newBasic.push({ ...record, type: RecordType.EXPENSE });
-          } else {
-            newGenie.push(record);
+            if (rp.target === 'BASIC') {
+              newBasic.push({ ...record, type: RecordType.EXPENSE });
+            } else {
+              newGenie.push(record);
+            }
+            return { ...rp, lastProcessed: todayStr };
           }
-          return { ...rp, lastProcessed: todayStr };
         }
         return rp;
       });
