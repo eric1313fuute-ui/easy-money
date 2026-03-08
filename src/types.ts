@@ -31,6 +31,13 @@ export enum RecordType {
   INCOME = 'INCOME',
 }
 
+export enum PaymentMethod {
+  CASH = 'CASH',
+  CREDIT_CARD = 'CREDIT_CARD',
+  BANK_TRANSFER = 'BANK_TRANSFER',
+  DIGITAL_PAYMENT = 'DIGITAL_PAYMENT',
+}
+
 export interface BasicRecord {
   id: string;
   name: string;
@@ -38,6 +45,7 @@ export interface BasicRecord {
   date: string;
   category: Category;
   type: RecordType;
+  paymentMethod: PaymentMethod;
 }
 
 export interface GeniePayRecord {
@@ -46,6 +54,8 @@ export interface GeniePayRecord {
   amount: number;
   date: string;
   category: Category;
+  paymentMethod: PaymentMethod;
+  isPaid?: boolean;
 }
 
 export interface SplitParticipant {
