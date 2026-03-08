@@ -22,7 +22,14 @@ import {
   CheckCircle2,
   AlertCircle,
   PieChart as PieChartIcon,
-  FileDown
+  FileDown,
+  Wallet,
+  TrendingUp,
+  Zap,
+  Target,
+  Sparkles,
+  Coins,
+  Receipt
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -54,9 +61,10 @@ const getToday = () => new Date().toISOString().split('T')[0];
 
 const RecordItem: React.FC<{ record: any, onClick: () => void, t: any }> = ({ record, onClick, t }) => (
   <motion.div 
+    whileHover={{ scale: 1.01, backgroundColor: '#f8fafc' }}
     whileTap={{ scale: 0.98 }}
     onClick={onClick}
-    className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-slate-100 cursor-pointer"
+    className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-slate-100 cursor-pointer transition-colors"
   >
     <div className="flex items-center gap-3">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${'type' in record && record.type === RecordType.INCOME ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -73,12 +81,37 @@ const RecordItem: React.FC<{ record: any, onClick: () => void, t: any }> = ({ re
   </motion.div>
 );
 
+const FloatingIcon = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <motion.div
+    animate={{
+      y: [0, -10, 0],
+      rotate: [0, 5, 0]
+    }}
+    transition={{
+      duration: 5,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }}
+    className={className}
+  >
+    {children}
+  </motion.div>
+);
+
 const NavItem = ({ icon, label, active, onClick }: { icon: any, label: string, active: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick}
-    className={`flex flex-col items-center justify-center w-16 transition-all active:scale-95 ${active ? 'text-blue-600' : 'text-slate-400'}`}
+    className={`flex flex-col items-center justify-center w-16 transition-all active:scale-95 relative ${active ? 'text-blue-600' : 'text-slate-400'}`}
   >
-    {icon}
+    {active && (
+      <motion.div 
+        layoutId="nav-glow"
+        className="absolute -top-1 w-1 h-1 bg-blue-600 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.8)]"
+      />
+    )}
+    <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'scale-100'}`}>
+      {icon}
+    </div>
     <span className="text-[10px] mt-1 font-medium">{label}</span>
   </button>
 );
@@ -182,11 +215,11 @@ const SettingsModal = ({
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.monthlyBudget}</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.initialBalance}</label>
               <input 
                 type="number" 
-                value={settings.monthlyBudget}
-                onChange={e => setSettings({ ...settings, monthlyBudget: Number(e.target.value) })}
+                value={settings.initialBalance}
+                onChange={e => setSettings({ ...settings, initialBalance: Number(e.target.value) })}
                 className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
               />
             </div>
@@ -592,17 +625,33 @@ const SplitTracker = ({
     <h2 className="text-2xl font-bold text-slate-800">{t.split}</h2>
 
     <div className="space-y-4">
-      {splitRecords.map(record => {
+      {splitRecords.map((record, i) => {
         const totalPaid = record.participants.reduce((sum, p) => sum + p.paid, 0);
         const isFullyPaid = totalPaid >= record.totalAmount;
 
         return (
-          <div key={record.id} className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 space-y-4">
+          <motion.div 
+            key={record.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden relative"
+          >
+            {/* Decorative Background Icon */}
+            <FloatingIcon className="absolute -left-4 -bottom-4 opacity-[0.03] rotate-12">
+              <Users size={120} />
+            </FloatingIcon>
+
+            <div className="p-6 space-y-4 relative z-10">
               <div className="flex items-center justify-between">
-                <div onClick={() => setSelectedRecord({ type: 'SPLIT', data: record })} className="cursor-pointer">
-                  <h3 className="font-bold text-slate-800">{record.name}</h3>
-                  <p className="text-slate-400 text-[10px]">{record.date}</p>
+                <div onClick={() => setSelectedRecord({ type: 'SPLIT', data: record })} className="cursor-pointer flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+                    <Receipt size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800">{record.name}</h3>
+                    <p className="text-slate-400 text-[10px]">{record.date}</p>
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="text-emerald-600 font-bold">{formatCurrency(record.totalAmount)}</p>
@@ -642,7 +691,7 @@ const SplitTracker = ({
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         );
       })}
       {splitRecords.length === 0 && (
@@ -678,37 +727,55 @@ const GeniePay = ({
     </div>
 
     <div className="space-y-6">
-      {genieCycles.map(cycle => (
-        <div key={cycle.key} className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-          <div className="bg-slate-50 p-6 flex items-center justify-between border-b border-slate-100">
-            <div>
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.billingCycle}</p>
-              <h3 className="text-lg font-bold text-slate-800">{cycle.key}</h3>
-            </div>
-            <div className="text-right">
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.totalSum}</p>
-              <p className="text-purple-600 font-bold text-xl">{formatCurrency(cycle.total)}</p>
-            </div>
-          </div>
+      {genieCycles.map((cycle, i) => (
+        <motion.div 
+          key={cycle.key}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.1 }}
+          className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden relative"
+        >
+          {/* Decorative Background Icon */}
+          <FloatingIcon className="absolute -right-6 -top-6 opacity-[0.03] -rotate-12">
+            <Zap size={140} />
+          </FloatingIcon>
           
-          <div className="p-6 space-y-4">
-            <div className="space-y-3">
-              {cycle.records.map((r: any) => (
-                <RecordItem key={r.id} record={r} onClick={() => setSelectedRecord({ type: 'GENIE', data: r })} t={t} />
-              ))}
-              {cycle.records.length === 0 && (
-                <div className="text-center py-4 text-slate-400 text-sm italic">{t.noRecords}</div>
-              )}
+          <div className="relative z-10">
+            <div className="bg-slate-50 p-6 flex items-center justify-between border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.billingCycle}</p>
+                  <h3 className="text-lg font-bold text-slate-800">{cycle.key}</h3>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.totalSum}</p>
+                <p className="text-purple-600 font-bold text-xl">{formatCurrency(cycle.total)}</p>
+              </div>
             </div>
             
-            <button 
-              onClick={() => exportPdf(cycle)}
-              className="w-full py-3 bg-slate-800 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
-            >
-              <FileDown size={16} /> {t.exportPdf}
-            </button>
+            <div className="p-6 space-y-4">
+              <div className="space-y-3">
+                {cycle.records.map((r: any) => (
+                  <RecordItem key={r.id} record={r} onClick={() => setSelectedRecord({ type: 'GENIE', data: r })} t={t} />
+                ))}
+                {cycle.records.length === 0 && (
+                  <div className="text-center py-4 text-slate-400 text-sm italic">{t.noRecords}</div>
+                )}
+              </div>
+              
+              <button 
+                onClick={() => exportPdf(cycle)}
+                className="w-full py-3 bg-slate-800 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
+              >
+                <FileDown size={16} /> {t.exportPdf}
+              </button>
+            </div>
           </div>
-        </div>
+        </motion.div>
       ))}
       {genieCycles.length === 0 && (
         <div className="bg-white rounded-3xl p-12 text-center text-slate-400 border border-dashed border-slate-200">
@@ -763,6 +830,15 @@ const Dashboard = ({
         {/* Decorative Patterns */}
         <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/20 rounded-full -mr-24 -mt-24 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full -ml-16 -mb-16 blur-2xl"></div>
+        
+        {/* Decorative Icons */}
+        <FloatingIcon className="absolute top-6 right-8 opacity-10 rotate-12">
+          <Wallet size={80} />
+        </FloatingIcon>
+        <FloatingIcon className="absolute bottom-4 right-12 opacity-5 -rotate-12">
+          <TrendingUp size={60} />
+        </FloatingIcon>
+
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.03] pointer-events-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -784,52 +860,84 @@ const Dashboard = ({
           <h2 className="text-4xl font-bold tracking-tight">{formatCurrency(stats.balance)}</h2>
           
           <div className="grid grid-cols-2 gap-6 mt-8 pt-6 border-t border-white/10">
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
               <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{t.income}</p>
               <p className="text-emerald-400 font-bold text-lg">+{formatCurrency(stats.income)}</p>
-            </div>
-            <div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
               <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{t.expense}</p>
               <p className="text-rose-400 font-bold text-lg">-{formatCurrency(stats.expense)}</p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
 
       {/* Daily Budget Card */}
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button onClick={() => changeDate(-1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-              <ChevronLeft size={16} className="text-slate-400" />
-            </button>
-            <div>
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                {isToday ? t.dailyBudget : viewDate}
-              </p>
-              <p className="text-slate-800 font-bold text-xl">{formatCurrency(stats.dailyBudget)}</p>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden"
+      >
+        {/* Decorative Background Icon */}
+        <FloatingIcon className="absolute -right-4 -bottom-4 opacity-[0.03] rotate-12">
+          <Target size={120} />
+        </FloatingIcon>
+        
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <button onClick={() => changeDate(-1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
+                <ChevronLeft size={16} className="text-slate-400" />
+              </button>
+              <div>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                  {isToday ? t.dailyBudget : viewDate}
+                </p>
+                <p className="text-slate-800 font-bold text-xl">{formatCurrency(stats.dailyBudget)}</p>
+              </div>
+              <button onClick={() => changeDate(1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
+                <ChevronRight size={16} className="text-slate-400" />
+              </button>
             </div>
-            <button onClick={() => changeDate(1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-              <ChevronRight size={16} className="text-slate-400" />
-            </button>
+            <div className="text-right">
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.remaining}</p>
+              <p className={`font-bold text-xl ${dailyData.remaining < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                {formatCurrency(dailyData.remaining)}
+              </p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.remaining}</p>
-            <p className={`font-bold text-xl ${dailyData.remaining < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
-              {formatCurrency(dailyData.remaining)}
-            </p>
+          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden relative">
+            <motion.div 
+              key={viewDate}
+              initial={{ width: 0 }}
+              animate={{ 
+                width: `${Math.min(100, (dailyData.expense / stats.dailyBudget) * 100)}%`,
+                scaleY: dailyData.expense > stats.dailyBudget ? [1, 1.1, 1] : 1
+              }}
+              transition={{
+                width: { duration: 0.5 },
+                scaleY: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+              }}
+              className={`h-full rounded-full relative ${dailyData.expense > stats.dailyBudget ? 'bg-rose-500' : 'bg-emerald-600'}`}
+            >
+              <motion.div
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              />
+            </motion.div>
           </div>
-        </div>
-        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-          <motion.div 
-            key={viewDate}
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(100, (dailyData.expense / stats.dailyBudget) * 100)}%` }}
-            className={`h-full rounded-full ${dailyData.expense > stats.dailyBudget ? 'bg-rose-500' : 'bg-emerald-600'}`}
-          ></motion.div>
         </div>
 
-        {/* Selected Date Records List */}
+      {/* Selected Date Records List */}
         {dailyData.records.length > 0 && (
           <div className="mt-6 pt-6 border-t border-slate-50 space-y-3">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
@@ -858,7 +966,7 @@ const Dashboard = ({
             No records for this day
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Recent Records */}
       <div className="space-y-4">
@@ -867,8 +975,15 @@ const Dashboard = ({
           <button onClick={() => setActiveTab('STATS')} className="text-blue-600 text-xs font-bold">{t.search}</button>
         </div>
         <div className="space-y-3">
-          {basicRecords.slice(0, 10).map(r => (
-            <RecordItem key={r.id} record={r} onClick={() => setSelectedRecord({ type: 'BASIC', data: r })} t={t} />
+          {basicRecords.slice(0, 10).map((r, i) => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+            >
+              <RecordItem record={r} onClick={() => setSelectedRecord({ type: 'BASIC', data: r })} t={t} />
+            </motion.div>
           ))}
           {basicRecords.length === 0 && (
             <div className="bg-white rounded-3xl p-12 text-center text-slate-400 border border-dashed border-slate-200">
@@ -1082,35 +1197,41 @@ const StatsPage = ({
           </button>
         </div>
 
-        <div className="h-64 w-full">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="h-64 w-full min-h-[256px] relative"
+        >
           {periodData.chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={periodData.chartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {periodData.chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <RechartsTooltip 
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="absolute inset-0">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                <PieChart>
+                  <Pie
+                    data={periodData.chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {periodData.chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
             <div className="h-full flex items-center justify-center text-slate-400 text-sm italic">
               {t.noRecords}
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Search Functionality */}
@@ -1159,8 +1280,15 @@ const StatsPage = ({
       </div>
 
       <div className="space-y-2">
-        {filtered.map(r => (
-          <RecordItem key={r.id} record={r as any} onClick={() => setSelectedRecord({ type: r.source as any, data: r })} t={t} />
+        {filtered.map((r, i) => (
+          <motion.div
+            key={r.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(i * 0.03, 0.5) }}
+          >
+            <RecordItem record={r as any} onClick={() => setSelectedRecord({ type: r.source as any, data: r })} t={t} />
+          </motion.div>
         ))}
         {filtered.length === 0 && (
           <div className="bg-white rounded-3xl p-12 text-center text-slate-400 border border-dashed border-slate-200">
@@ -1235,8 +1363,17 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
   };
 
   return (
-    <div className="p-4 space-y-6">
-      <h2 className="text-2xl font-bold text-slate-800">{t.add}</h2>
+    <div className="p-4 space-y-6 relative min-h-[calc(100vh-160px)]">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-20 -left-10 w-40 h-40 bg-blue-100/50 rounded-full blur-3xl -z-10"></div>
+      <div className="absolute bottom-20 -right-10 w-60 h-60 bg-purple-100/50 rounded-full blur-3xl -z-10"></div>
+      
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800">{t.add}</h2>
+        <div className="w-10 h-10 bg-white rounded-2xl shadow-sm flex items-center justify-center text-blue-600">
+          <PlusCircle size={24} />
+        </div>
+      </div>
       
       <div className="flex bg-slate-200 p-1 rounded-2xl">
         <button onClick={() => setMode('BASIC')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'BASIC' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>{t.basic}</button>
@@ -1244,7 +1381,13 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
         <button onClick={() => setMode('SPLIT')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'SPLIT' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}>{t.split}</button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+      <motion.form 
+        key={mode}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        onSubmit={handleSubmit} 
+        className="space-y-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100"
+      >
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.name}</label>
           <input 
@@ -1376,7 +1519,7 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
         >
           {t.save}
         </button>
-      </form>
+      </motion.form>
     </div>
   );
 };
@@ -1386,7 +1529,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
   const [settings, setSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('app_settings');
-    return saved ? JSON.parse(saved) : { language: Language.ZH, genieBillingDay: 10, monthlyBudget: 20000, dailyBudget: 500 };
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migration: if monthlyBudget exists but initialBalance doesn't
+      if (parsed.monthlyBudget !== undefined && parsed.initialBalance === undefined) {
+        parsed.initialBalance = parsed.monthlyBudget;
+        delete parsed.monthlyBudget;
+      }
+      return parsed;
+    }
+    return { language: Language.ZH, genieBillingDay: 10, initialBalance: 20000, dailyBudget: 500 };
   });
 
   const [basicRecords, setBasicRecords] = useState<BasicRecord[]>(() => {
@@ -1512,8 +1664,8 @@ export default function App() {
     const income = cycleBasic.filter(r => r.type === RecordType.INCOME).reduce((sum, r) => sum + r.amount, 0);
     const expense = cycleBasic.filter(r => r.type === RecordType.EXPENSE).reduce((sum, r) => sum + r.amount, 0);
     
-    const totalBalance = basicRecords.reduce((sum, r) => r.type === RecordType.INCOME ? sum + r.amount : sum - r.amount, 0);
-    const remainingBudget = settings.monthlyBudget - expense;
+    const totalBalance = basicRecords.reduce((sum, r) => r.type === RecordType.INCOME ? sum + r.amount : sum - r.amount, settings.initialBalance);
+    const remainingBudget = 0; // Removed monthly budget
 
     const todayStr = getToday();
     const dailyRecords = basicRecords.filter(r => r.date === todayStr);
@@ -1525,7 +1677,7 @@ export default function App() {
       income, 
       expense, 
       balance: totalBalance, 
-      budget: settings.monthlyBudget, 
+      budget: 0, 
       budgetRemaining: remainingBudget,
       dailyBudget: settings.dailyBudget,
       dailyExpense,
@@ -1533,7 +1685,7 @@ export default function App() {
       dailyRecords,
       currentCycleKey
     };
-  }, [basicRecords, settings.monthlyBudget, settings.dailyBudget, settings.genieBillingDay]);
+  }, [basicRecords, settings.initialBalance, settings.dailyBudget, settings.genieBillingDay]);
 
   const genieCycles = useMemo(() => {
     const cycles: Record<string, GeniePayRecord[]> = {};

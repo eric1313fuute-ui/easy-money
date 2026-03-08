@@ -67,7 +67,7 @@ export interface RecurringPayment {
 export interface AppSettings {
   language: Language;
   genieBillingDay: number;
-  monthlyBudget: number;
+  initialBalance: number;
   dailyBudget: number;
 }
 
