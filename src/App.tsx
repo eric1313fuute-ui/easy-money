@@ -187,15 +187,16 @@ const SettingsModal = ({
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
-          className="bg-white w-full max-w-md rounded-t-[40px] sm:rounded-[40px] p-8 space-y-8 shadow-2xl"
+          className="bg-white w-full max-w-md rounded-t-[40px] sm:rounded-[40px] shadow-2xl flex flex-col max-h-[90vh]"
           onClick={e => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-8 pb-4 sticky top-0 bg-white z-10 rounded-t-[40px] border-b border-slate-50">
             <h2 className="text-2xl font-bold text-slate-800">{t.settings}</h2>
-            <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-slate-100 rounded-full"><X size={20} /></button>
+            <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"><X size={20} /></button>
           </div>
 
-          <div className="space-y-6">
+          <div className="p-8 pt-6 space-y-8 overflow-y-auto flex-1">
+            <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.language}</label>
               <div className="flex bg-slate-100 p-1 rounded-2xl">
@@ -363,6 +364,7 @@ const SettingsModal = ({
               </div>
             </div>
           </div>
+        </div>
         </motion.div>
       </motion.div>
     )}
@@ -404,15 +406,16 @@ const DetailModal = ({
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
-          className="bg-white w-full max-w-md rounded-t-[40px] sm:rounded-[40px] p-8 space-y-6 shadow-2xl"
+          className="bg-white w-full max-w-md rounded-t-[40px] sm:rounded-[40px] shadow-2xl flex flex-col max-h-[90vh]"
           onClick={e => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-8 pb-4 sticky top-0 bg-white z-10 rounded-t-[40px] border-b border-slate-50">
             <h2 className="text-2xl font-bold text-slate-800">{isEditMode ? t.edit : t.name}</h2>
-            <button onClick={() => { setSelectedRecord(null); setIsEditMode(false); }} className="p-2 bg-slate-100 rounded-full"><X size={20} /></button>
+            <button onClick={() => { setSelectedRecord(null); setIsEditMode(false); }} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"><X size={20} /></button>
           </div>
 
-          {isEditMode ? (
+          <div className="p-8 pt-6 space-y-6 overflow-y-auto flex-1">
+            {isEditMode ? (
             <form onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
@@ -430,7 +433,13 @@ const DetailModal = ({
               <input name="date" type="date" defaultValue={data.date} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
               {type !== 'SPLIT' && (
                 <select name="category" defaultValue={data.category} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3">
-                  {Object.entries(Category).map(([k, v]) => <option key={k} value={v}>{t.categories[v]}</option>)}
+                  {Object.entries(Category)
+                    .filter(([_, val]) => {
+                      if (type === 'GENIE') return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
+                      if (data.type === RecordType.INCOME) return [Category.SALARY, Category.BONUS, Category.INVESTMENT, Category.GIFT, Category.OTHER_INCOME, Category.INCOME].includes(val);
+                      return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
+                    })
+                    .map(([k, v]) => <option key={k} value={v}>{t.categories[v]}</option>)}
                 </select>
               )}
               <button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg">{t.save}</button>
@@ -471,6 +480,7 @@ const DetailModal = ({
               </div>
             </div>
           )}
+        </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -1281,9 +1291,11 @@ const StatsPage = ({
           className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs"
         >
           <option value="ALL">All Categories</option>
-          {Object.entries(Category).map(([key, val]) => (
-            <option key={key} value={val}>{t.categories[val]}</option>
-          ))}
+          {Object.entries(Category)
+            .filter(([_, val]) => ![Category.OTHER, Category.INCOME].includes(val))
+            .map(([key, val]) => (
+              <option key={key} value={val}>{t.categories[val]}</option>
+            ))}
         </select>
       </div>
 
@@ -1446,9 +1458,15 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
                 onChange={e => setFormData({ ...formData, category: e.target.value as Category })}
                 className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
               >
-                {Object.entries(Category).map(([key, val]) => (
-                  <option key={key} value={val}>{t.categories[val]}</option>
-                ))}
+                {Object.entries(Category)
+                  .filter(([_, val]) => {
+                    if (mode === 'GENIE') return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
+                    if (formData.type === RecordType.INCOME) return [Category.SALARY, Category.BONUS, Category.INVESTMENT, Category.GIFT, Category.OTHER_INCOME, Category.INCOME].includes(val);
+                    return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
+                  })
+                  .map(([key, val]) => (
+                    <option key={key} value={val}>{t.categories[val]}</option>
+                  ))}
               </select>
             </div>
             {mode === 'BASIC' && (
@@ -1456,7 +1474,11 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.type}</label>
                 <select 
                   value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value as RecordType })}
+                  onChange={e => {
+                    const newType = e.target.value as RecordType;
+                    const defaultCat = newType === RecordType.INCOME ? Category.SALARY : Category.FOOD;
+                    setFormData({ ...formData, type: newType, category: defaultCat });
+                  }}
                   className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
                 >
                   <option value={RecordType.EXPENSE}>{t.expense}</option>

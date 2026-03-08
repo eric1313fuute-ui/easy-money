@@ -4,11 +4,24 @@ export enum Language {
 }
 
 export enum Category {
+  // Expense
   FOOD = 'FOOD',
   TRANSPORT = 'TRANSPORT',
   SHOPPING = 'SHOPPING',
   ENTERTAINMENT = 'ENTERTAINMENT',
   HEALTH = 'HEALTH',
+  HOUSING = 'HOUSING',
+  EDUCATION = 'EDUCATION',
+  OTHER_EXPENSE = 'OTHER_EXPENSE',
+  
+  // Income
+  SALARY = 'SALARY',
+  BONUS = 'BONUS',
+  INVESTMENT = 'INVESTMENT',
+  GIFT = 'GIFT',
+  OTHER_INCOME = 'OTHER_INCOME',
+  
+  // Legacy
   OTHER = 'OTHER',
   INCOME = 'INCOME',
 }
