@@ -29,7 +29,9 @@ import {
   Target,
   Sparkles,
   Coins,
-  Receipt
+  Receipt,
+  ArrowDownRight,
+  ArrowUpRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -60,30 +62,61 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 const formatCurrency = (amount: number) => new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(amount);
 const getToday = () => new Date().toISOString().split('T')[0];
 
-const RecordItem: React.FC<{ record: any, onClick: () => void, t: any }> = ({ record, onClick, t }) => (
-  <motion.div 
-    whileHover={{ scale: 1.01, backgroundColor: '#f8fafc' }}
-    whileTap={{ scale: 0.98 }}
-    onClick={onClick}
-    className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-slate-100 cursor-pointer transition-colors"
-  >
-    <div className="flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${'type' in record && record.type === RecordType.INCOME ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
-        <FileText size={20} />
+const RecordItem: React.FC<{ record: any, onClick: () => void, t: any }> = ({ record, onClick, t }) => {
+  const isGenie = record.source === 'GENIE';
+  const isBasicCreditCard = record.source === 'BASIC' && record.paymentMethod === PaymentMethod.CREDIT_CARD;
+  const isIncome = 'type' in record && record.type === RecordType.INCOME;
+  
+  let iconBg = 'bg-indigo-50 text-indigo-600';
+  let Icon = FileText;
+  
+  if (isGenie) {
+    iconBg = 'bg-purple-50 text-purple-600';
+    Icon = Sparkles;
+  } else if (isBasicCreditCard) {
+    iconBg = 'bg-indigo-50 text-indigo-600';
+    Icon = CreditCard;
+  } else if (isIncome) {
+    iconBg = 'bg-emerald-50 text-emerald-600';
+  }
+
+  return (
+    <motion.div 
+      whileHover={{ scale: 1.01, backgroundColor: '#f8fafc' }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className="bg-white rounded-[20px] p-4 flex items-center justify-between shadow-sm border border-slate-100 cursor-pointer transition-colors"
+    >
+      <div className="flex items-center gap-3">
+        <div className={`w-12 h-12 rounded-[16px] flex items-center justify-center ${iconBg}`}>
+          <Icon size={22} />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-slate-800 text-[15px]">{record.name}</p>
+            {isGenie && (
+              <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
+                {t.geniePays}
+              </span>
+            )}
+            {isBasicCreditCard && (
+              <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
+                {t.iPay}
+              </span>
+            )}
+          </div>
+          <p className="text-slate-400 text-[11px] font-medium mt-0.5">
+            {record.date} • {t.categories[record.category]} {record.paymentMethod ? `• ${t.paymentMethods[record.paymentMethod]}` : ''}
+            {record.isPaid && ` • ${t.paid}`}
+          </p>
+        </div>
       </div>
-      <div>
-        <p className="font-bold text-slate-800 text-sm">{record.name}</p>
-        <p className="text-slate-400 text-[10px]">
-          {record.date} • {t.categories[record.category]} • {record.paymentMethod ? t.paymentMethods[record.paymentMethod] : ''}
-          {record.isPaid && ` • ${t.paid}`}
-        </p>
-      </div>
-    </div>
-    <p className={`font-bold ${'type' in record && record.type === RecordType.INCOME ? 'text-emerald-600' : 'text-slate-800'}`}>
-      {'type' in record && record.type === RecordType.INCOME ? '+' : '-'}{formatCurrency(record.amount)}
-    </p>
-  </motion.div>
-);
+      <p className={`font-bold text-[15px] ${isIncome ? 'text-emerald-600' : isGenie ? 'text-purple-600' : 'text-slate-800'}`}>
+        {isIncome ? '+' : '-'}{formatCurrency(record.amount)}
+      </p>
+    </motion.div>
+  );
+};
 
 const FloatingIcon = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <motion.div
@@ -105,40 +138,40 @@ const FloatingIcon = ({ children, className }: { children: React.ReactNode, clas
 const NavItem = ({ icon, label, active, onClick }: { icon: any, label: string, active: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick}
-    className={`flex flex-col items-center justify-center w-16 transition-all active:scale-95 relative ${active ? 'text-blue-600' : 'text-slate-400'}`}
+    className={`flex flex-col items-center justify-center w-16 transition-all active:scale-95 relative ${active ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
   >
     {active && (
       <motion.div 
         layoutId="nav-glow"
-        className="absolute -top-1 w-1 h-1 bg-blue-600 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.8)]"
+        className="absolute -top-2 w-1.5 h-1.5 bg-indigo-600 rounded-full shadow-[0_0_8px_rgba(79,70,229,0.8)]"
       />
     )}
     <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'scale-100'}`}>
       {icon}
     </div>
-    <span className="text-[10px] mt-1 font-medium">{label}</span>
+    <span className="text-[10px] mt-1 font-medium tracking-wide">{label}</span>
   </button>
 );
 
 const Header = ({ t, setIsSettingsOpen }: { t: any, setIsSettingsOpen: (open: boolean) => void }) => (
-  <header className="fixed top-0 left-0 right-0 bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 z-40">
-    <h1 className="text-xl font-bold text-slate-800">{t.appName}</h1>
+  <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm h-16 flex items-center justify-between px-5 z-40">
+    <h1 className="text-xl font-bold text-indigo-700 tracking-tight">{t.appName}</h1>
     <button 
       onClick={() => setIsSettingsOpen(true)}
       className="p-2 rounded-full hover:bg-slate-100 active:scale-95 transition-all"
     >
-      <SettingsIcon size={24} className="text-slate-600" />
+      <SettingsIcon size={22} className="text-slate-600" />
     </button>
   </header>
 );
 
 const BottomNav = ({ activeTab, setActiveTab, t }: { activeTab: Tab, setActiveTab: (tab: Tab) => void, t: any }) => (
-  <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-20 flex items-center justify-around px-2 pb-safe z-40">
+  <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/50 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] h-20 flex items-center justify-around px-2 pb-safe z-40">
     <NavItem icon={<LayoutDashboard size={24} />} label={t.dashboard} active={activeTab === 'DASHBOARD'} onClick={() => setActiveTab('DASHBOARD')} />
     <NavItem icon={<CreditCard size={24} />} label={t.geniePay} active={activeTab === 'GENIE'} onClick={() => setActiveTab('GENIE')} />
     <button 
       onClick={() => setActiveTab('ADD')}
-      className={`flex flex-col items-center justify-center -mt-10 w-16 h-16 rounded-full shadow-lg transition-all active:scale-90 ${activeTab === 'ADD' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border-2 border-blue-600'}`}
+      className={`flex flex-col items-center justify-center -mt-10 w-16 h-16 rounded-full shadow-xl transition-all active:scale-90 ${activeTab === 'ADD' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600 border-2 border-indigo-600'}`}
     >
       <PlusCircle size={32} />
     </button>
@@ -206,13 +239,13 @@ const SettingsModal = ({
               <div className="flex bg-slate-100 p-1 rounded-2xl">
                 <button 
                   onClick={() => setSettings({ ...settings, language: Language.ZH })}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settings.language === Language.ZH ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settings.language === Language.ZH ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}
                 >
                   繁體中文
                 </button>
                 <button 
                   onClick={() => setSettings({ ...settings, language: Language.EN })}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settings.language === Language.EN ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${settings.language === Language.EN ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}
                 >
                   English
                 </button>
@@ -277,7 +310,7 @@ const SettingsModal = ({
                 ))}
                 
                 {isAddingRecurring ? (
-                  <div className="bg-slate-50 p-4 rounded-2xl space-y-3 border border-blue-100">
+                  <div className="bg-slate-50 p-4 rounded-2xl space-y-3 border border-indigo-100">
                     <input 
                       type="text" 
                       placeholder={t.name}
@@ -335,7 +368,7 @@ const SettingsModal = ({
                             setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
                           }
                         }}
-                        className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold"
+                        className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
                       >
                         {t.save}
                       </button>
@@ -438,6 +471,7 @@ const DetailModal = ({
               <input name="date" type="date" defaultValue={data.date} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
               {type !== 'SPLIT' && (
                 <>
+                  <input type="hidden" name="type" value={data.type || RecordType.EXPENSE} />
                   <select name="category" defaultValue={data.category} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3">
                     {Object.entries(Category)
                       .filter(([_, val]) => {
@@ -447,12 +481,16 @@ const DetailModal = ({
                       })
                       .map(([k, v]) => <option key={k} value={v}>{t.categories[v]}</option>)}
                   </select>
-                  <select name="paymentMethod" defaultValue={data.paymentMethod} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3">
-                    {Object.entries(PaymentMethod).map(([k, v]) => <option key={k} value={v}>{t.paymentMethods[v]}</option>)}
-                  </select>
+                  {type === 'BASIC' ? (
+                    <select name="paymentMethod" defaultValue={data.paymentMethod} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3">
+                      {Object.entries(PaymentMethod).map(([k, v]) => <option key={k} value={v}>{t.paymentMethods[v]}</option>)}
+                    </select>
+                  ) : (
+                    <input type="hidden" name="paymentMethod" value={PaymentMethod.CREDIT_CARD} />
+                  )}
                 </>
               )}
-              <button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg">{t.save}</button>
+              <button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold shadow-lg transition-colors">{t.save}</button>
             </form>
           ) : (
             <div className="space-y-6">
@@ -483,7 +521,7 @@ const DetailModal = ({
               <div className="flex gap-4 pt-4">
                 <button 
                   onClick={() => setIsEditMode(true)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-blue-100 text-blue-600 py-4 rounded-2xl font-bold active:scale-95 transition-all"
+                  className="flex-1 flex items-center justify-center gap-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 py-4 rounded-2xl font-bold active:scale-95 transition-all"
                 >
                   <Edit3 size={18} /> {t.edit}
                 </button>
@@ -734,7 +772,7 @@ const SplitTracker = ({
         );
       })}
       {splitRecords.length === 0 && (
-        <div className="bg-white rounded-3xl p-12 text-center text-slate-400 border border-dashed border-slate-200">
+        <div className="bg-white rounded-[32px] p-12 text-center text-slate-400 border border-dashed border-slate-200">
           {t.noRecords}
         </div>
       )}
@@ -758,102 +796,143 @@ const GeniePay = ({
   exportPdf: (cycle: any) => void, 
   formatCurrency: (val: number) => string,
   toggleGeniePaid: (cycleKey: string) => void
-}) => (
-  <div className="p-4 space-y-6 pb-24">
-    <div className="flex items-center justify-between px-2">
-      <h2 className="text-2xl font-bold text-slate-800">{t.geniePay}</h2>
-      <div className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-        {t.billingDay}: {settings.genieBillingDay}
+}) => {
+  const [activeCycleKey, setActiveCycleKey] = useState<string | null>(
+    genieCycles.length > 0 ? genieCycles[0].key : null
+  );
+
+  useEffect(() => {
+    if (genieCycles.length > 0 && !genieCycles.find(c => c.key === activeCycleKey)) {
+      setActiveCycleKey(genieCycles[0].key);
+    } else if (genieCycles.length === 0 && activeCycleKey !== null) {
+      setActiveCycleKey(null);
+    }
+  }, [genieCycles, activeCycleKey]);
+
+  const activeCycle = genieCycles.find(c => c.key === activeCycleKey) || genieCycles[0];
+
+  return (
+    <div className="p-4 space-y-6 pb-24">
+      <div className="flex items-center justify-between px-2">
+        <h2 className="text-2xl font-bold text-slate-800">{t.geniePay}</h2>
+        <div className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+          {t.billingDay}: {settings.genieBillingDay}
+        </div>
       </div>
-    </div>
 
-    <div className="space-y-6">
-      {genieCycles.map((cycle, i) => (
-        <motion.div 
-          key={cycle.key}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden relative"
-        >
-          {/* Decorative Background Icon */}
-          <FloatingIcon className="absolute -right-6 -top-6 opacity-[0.03] -rotate-12">
-            <Zap size={140} />
-          </FloatingIcon>
-          
-          <div className="relative z-10">
-            <div className="bg-slate-50 p-6 flex flex-col gap-4 border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600">
-                    <Sparkles size={20} />
+      {genieCycles.length > 0 && (
+        <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-6 border-b border-slate-200">
+          {genieCycles.map(cycle => (
+            <button
+              key={cycle.key}
+              onClick={() => setActiveCycleKey(cycle.key)}
+              className={`whitespace-nowrap pb-3 text-sm font-bold transition-all relative ${
+                activeCycleKey === cycle.key
+                  ? 'text-purple-600'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {cycle.key}
+              {activeCycleKey === cycle.key && (
+                <motion.div 
+                  layoutId="activeGenieTab"
+                  className="absolute bottom-0 left-0 right-0 h-1 bg-purple-600 rounded-t-full"
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-6">
+        {activeCycle ? (
+          <motion.div 
+            key={activeCycle.key}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden relative"
+          >
+            {/* Decorative Background Icon */}
+            <FloatingIcon className="absolute -right-6 -top-6 opacity-[0.03] -rotate-12">
+              <Zap size={140} />
+            </FloatingIcon>
+            
+            <div className="relative z-10">
+              <div className="bg-slate-50 p-6 flex flex-col gap-6 border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-purple-500">
+                      <Sparkles size={28} strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.billingCycle}</p>
+                      <h3 className="text-lg font-bold text-slate-800">{activeCycle.key}</h3>
+                    </div>
                   </div>
+                  <div className="text-right">
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.totalSum}</p>
+                    <p className="text-purple-600 font-bold text-xl">{formatCurrency(activeCycle.total)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-8 pt-2">
                   <div>
-                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.billingCycle}</p>
-                    <h3 className="text-lg font-bold text-slate-800">{cycle.key}</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.iPay}</p>
+                    <p className="text-slate-700 font-bold text-lg">{formatCurrency(activeCycle.iPay)}</p>
+                  </div>
+                  <div className="w-px h-8 bg-slate-200"></div>
+                  <div>
+                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">{t.geniePays}</p>
+                    <p className="text-purple-600 font-bold text-lg">{formatCurrency(activeCycle.geniePays)}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.totalSum}</p>
-                  <p className="text-purple-600 font-bold text-xl">{formatCurrency(cycle.total)}</p>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${activeCycle.isPaid ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${activeCycle.isPaid ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {activeCycle.isPaid ? t.paid : t.unpaid}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => toggleGeniePaid(activeCycle.key)}
+                    className={`px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${activeCycle.isPaid ? 'bg-slate-100 text-slate-500' : 'bg-emerald-600 text-white shadow-md shadow-emerald-200'}`}
+                  >
+                    {activeCycle.isPaid ? t.unpaid : t.paid}
+                  </button>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="bg-white p-3 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.iPay}</p>
-                  <p className="text-slate-700 font-bold">{formatCurrency(cycle.iPay)}</p>
+              
+              <div className="p-6 space-y-4">
+                <div className="space-y-3">
+                  {activeCycle.records.map((r: any) => (
+                    <RecordItem key={r.id} record={r} onClick={() => setSelectedRecord({ type: 'GENIE', data: r })} t={t} />
+                  ))}
+                  {activeCycle.records.length === 0 && (
+                    <div className="text-center py-4 text-slate-400 text-sm italic">{t.noRecords}</div>
+                  )}
                 </div>
-                <div className="bg-purple-50 p-3 rounded-2xl border border-purple-100">
-                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">{t.geniePays}</p>
-                  <p className="text-purple-600 font-bold">{formatCurrency(cycle.geniePays)}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${cycle.isPaid ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${cycle.isPaid ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {cycle.isPaid ? t.paid : t.unpaid}
-                  </span>
-                </div>
+                
                 <button 
-                  onClick={() => toggleGeniePaid(cycle.key)}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${cycle.isPaid ? 'bg-slate-100 text-slate-500' : 'bg-emerald-600 text-white shadow-md shadow-emerald-200'}`}
+                  onClick={() => exportPdf(activeCycle)}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md"
                 >
-                  {cycle.isPaid ? t.unpaid : t.paid}
+                  <FileDown size={16} /> {t.exportPdf}
                 </button>
               </div>
             </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="space-y-3">
-                {cycle.records.map((r: any) => (
-                  <RecordItem key={r.id} record={r} onClick={() => setSelectedRecord({ type: 'GENIE', data: r })} t={t} />
-                ))}
-                {cycle.records.length === 0 && (
-                  <div className="text-center py-4 text-slate-400 text-sm italic">{t.noRecords}</div>
-                )}
-              </div>
-              
-              <button 
-                onClick={() => exportPdf(cycle)}
-                className="w-full py-3 bg-slate-800 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
-              >
-                <FileDown size={16} /> {t.exportPdf}
-              </button>
-            </div>
+          </motion.div>
+        ) : null}
+
+        {genieCycles.length === 0 && (
+          <div className="bg-white rounded-[32px] p-12 text-center text-slate-400 border border-dashed border-slate-200">
+            {t.noRecords}
           </div>
-        </motion.div>
-      ))}
-      {genieCycles.length === 0 && (
-        <div className="bg-white rounded-3xl p-12 text-center text-slate-400 border border-dashed border-slate-200">
-          {t.noRecords}
-        </div>
-      )}
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Dashboard = ({ 
   t, 
@@ -895,10 +974,10 @@ const Dashboard = ({
   return (
     <div className="p-4 space-y-6 pb-24">
       {/* Summary Card */}
-      <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
+      <div className="bg-indigo-900 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
         {/* Decorative Patterns */}
-        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/20 rounded-full -mr-24 -mt-24 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full -ml-16 -mb-16 blur-2xl"></div>
+        <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/30 rounded-full -mr-24 -mt-24 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/20 rounded-full -ml-16 -mb-16 blur-2xl"></div>
         
         {/* Decorative Icons */}
         <FloatingIcon className="absolute top-6 right-8 opacity-10 rotate-12">
@@ -921,29 +1000,37 @@ const Dashboard = ({
         
         <div className="relative z-10">
           <div className="flex justify-between items-start mb-1">
-            <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">{t.totalBalance}</p>
+            <p className="text-indigo-300 text-[10px] font-bold uppercase tracking-widest">{t.totalBalance}</p>
             <span className="bg-white/10 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-tighter text-white/60">
               Cycle: {stats.currentCycleKey}
             </span>
           </div>
-          <h2 className="text-4xl font-bold tracking-tight">{formatCurrency(stats.balance)}</h2>
+          <h2 className="text-5xl font-bold tracking-tight">{formatCurrency(stats.balance)}</h2>
           
           <div className="grid grid-cols-2 gap-6 mt-8 pt-6 border-t border-white/10">
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
+              className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10"
             >
-              <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{t.income}</p>
-              <p className="text-emerald-400 font-bold text-lg">+{formatCurrency(stats.income)}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <ArrowDownRight size={14} className="text-emerald-400" />
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">{t.income}</p>
+              </div>
+              <p className="text-emerald-400 font-bold text-xl">+{formatCurrency(stats.income)}</p>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
+              className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10"
             >
-              <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{t.expense}</p>
-              <p className="text-rose-400 font-bold text-lg">-{formatCurrency(stats.expense)}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <ArrowUpRight size={14} className="text-rose-400" />
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">{t.expense}</p>
+              </div>
+              <p className="text-rose-400 font-bold text-xl">-{formatCurrency(stats.expense)}</p>
             </motion.div>
           </div>
         </div>
@@ -953,7 +1040,7 @@ const Dashboard = ({
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden"
+        className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 relative overflow-hidden"
       >
         {/* Decorative Background Icon */}
         <FloatingIcon className="absolute -right-4 -bottom-4 opacity-[0.03] rotate-12">
@@ -962,23 +1049,23 @@ const Dashboard = ({
         
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button onClick={() => changeDate(-1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-                <ChevronLeft size={16} className="text-slate-400" />
+                <ChevronLeft size={18} className="text-slate-400" />
               </button>
               <div>
                 <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
                   {isToday ? t.dailyBudget : viewDate}
                 </p>
-                <p className="text-slate-800 font-bold text-xl">{formatCurrency(stats.dailyBudget)}</p>
+                <p className="text-slate-800 font-bold text-2xl tracking-tight">{formatCurrency(stats.dailyBudget)}</p>
               </div>
               <button onClick={() => changeDate(1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-                <ChevronRight size={16} className="text-slate-400" />
+                <ChevronRight size={18} className="text-slate-400" />
               </button>
             </div>
             <div className="text-right">
               <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.remaining}</p>
-              <p className={`font-bold text-xl ${dailyData.remaining < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+              <p className={`font-bold text-2xl tracking-tight ${dailyData.remaining < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
                 {formatCurrency(dailyData.remaining)}
               </p>
             </div>
@@ -1041,7 +1128,7 @@ const Dashboard = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">{t.recent}</h3>
-          <button onClick={() => setActiveTab('STATS')} className="text-blue-600 text-xs font-bold">{t.search}</button>
+          <button onClick={() => setActiveTab('STATS')} className="text-indigo-600 text-xs font-bold hover:text-indigo-700 transition-colors">{t.search}</button>
         </div>
         <div className="space-y-3">
           {basicRecords.slice(0, 10).map((r, i) => (
@@ -1055,7 +1142,7 @@ const Dashboard = ({
             </motion.div>
           ))}
           {basicRecords.length === 0 && (
-            <div className="bg-white rounded-3xl p-12 text-center text-slate-400 border border-dashed border-slate-200">
+            <div className="bg-white rounded-[32px] p-12 text-center text-slate-400 border border-dashed border-slate-200">
               {t.noRecords}
             </div>
           )}
@@ -1078,28 +1165,51 @@ const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, pe
       <head>
         <title>${t.appName} - ${periodKey} Full Statement</title>
         <style>
-          body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.5; }
-          h1 { color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }
-          h2 { color: #475569; margin-top: 30px; border-left: 4px solid #2563eb; padding-left: 10px; }
-          .meta { margin-bottom: 30px; display: flex; justify-content: space-between; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
-          th { background: #f8fafc; font-weight: 600; }
-          .total-section { margin-top: 30px; padding: 20px; background: #f1f5f9; border-radius: 8px; text-align: right; }
-          .total-row { font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+          body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; background: #fff; }
+          .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 8rem;
+            color: rgba(0, 0, 0, 0.03);
+            z-index: -1;
+            white-space: nowrap;
+            pointer-events: none;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+          }
+          .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #4f46e5; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { color: #4f46e5; margin: 0; font-size: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
+          .meta { text-align: right; font-size: 0.95rem; color: #64748b; }
+          .meta strong { color: #1e293b; }
+          h2 { color: #334155; margin-top: 40px; font-size: 1.25rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-left: 4px solid #4f46e5; padding-left: 12px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 0.95rem; }
+          th, td { text-align: left; padding: 14px 12px; border-bottom: 1px solid #e2e8f0; }
+          th { background: #f8fafc; font-weight: 600; color: #475569; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; }
+          tbody tr:hover { background: #f8fafc; }
+          .total-section { margin-top: 40px; padding: 24px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; width: 320px; margin-left: auto; }
+          .total-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05rem; color: #475569; }
+          .total-row.grand { font-size: 1.5rem; font-weight: 700; color: #4f46e5; border-top: 2px solid #e2e8f0; padding-top: 16px; margin-top: 16px; margin-bottom: 0; }
           .expense { color: #ef4444; }
           .income { color: #10b981; }
-          .footer { margin-top: 50px; font-size: 0.8rem; color: #94a3b8; text-align: center; }
+          .footer { margin-top: 60px; font-size: 0.85rem; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px; }
         </style>
       </head>
       <body>
-        <h1>${t.appName} - ${t.search}</h1>
-        <div class="meta">
-          <div><strong>${t.billingCycle}:</strong> ${periodKey}</div>
-          <div><strong>${t.date}:</strong> ${new Date().toLocaleDateString()}</div>
+        <div class="watermark">${t.appName}</div>
+        <div class="header">
+          <h1>${t.appName}</h1>
+          <div class="meta">
+            <div><strong>${t.search} Statement</strong></div>
+            <div><strong>${t.billingCycle}:</strong> ${periodKey}</div>
+            <div><strong>${t.date}:</strong> ${new Date().toLocaleDateString()}</div>
+          </div>
         </div>
 
         <h2>${t.dashboard}</h2>
+        ${basic.length > 0 ? `
         <table>
           <thead>
             <tr>
@@ -1122,8 +1232,10 @@ const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, pe
             `).join('')}
           </tbody>
         </table>
+        ` : `<p style="color: #94a3b8; margin-bottom: 30px; font-style: italic;">${t.noRecords}</p>`}
 
         <h2>${t.geniePay}</h2>
+        ${genie.length > 0 ? `
         <table>
           <thead>
             <tr>
@@ -1139,18 +1251,30 @@ const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, pe
                 <td>${r.date}</td>
                 <td>${r.name}</td>
                 <td>${t.categories[r.category]}</td>
-                <td style="text-align: right;">${formatCurrency(r.amount)}</td>
+                <td style="text-align: right;" class="expense">
+                  -${formatCurrency(r.amount)}
+                </td>
               </tr>
             `).join('')}
           </tbody>
         </table>
+        ` : `<p style="color: #94a3b8; margin-bottom: 30px; font-style: italic;">${t.noRecords}</p>`}
 
         <div class="total-section">
-          <div>${t.dashboard} ${t.totalSum}: ${formatCurrency(totalBasic)}</div>
-          <div>${t.geniePay} ${t.totalSum}: ${formatCurrency(totalGenie)}</div>
-          <div class="total-row">${t.totalSum}: ${formatCurrency(total)}</div>
+          <div class="total-row">
+            <span>${t.dashboard} ${t.totalSum}:</span>
+            <span>${formatCurrency(totalBasic)}</span>
+          </div>
+          <div class="total-row">
+            <span>${t.geniePay} ${t.totalSum}:</span>
+            <span>${formatCurrency(totalGenie)}</span>
+          </div>
+          <div class="total-row grand">
+            <span>${t.totalSum}:</span>
+            <span>${formatCurrency(total)}</span>
+          </div>
         </div>
-        <div class="footer">Generated by ${t.appName}</div>
+        <div class="footer">Generated securely by ${t.appName} &bull; ${new Date().toLocaleString()}</div>
       </body>
     </html>
   `;
@@ -1254,7 +1378,7 @@ const StatsPage = ({
       <h2 className="text-2xl font-bold text-slate-800">{t.search}</h2>
       
       {/* Period Selector & Chart */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+      <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 space-y-4">
         <div className="flex items-center justify-between">
           <select 
             value={selectedPeriod}
@@ -1265,7 +1389,7 @@ const StatsPage = ({
           </select>
           <button 
             onClick={() => onExportFullPeriodPdf(selectedPeriod, periodData.basic, periodData.genie)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md active:scale-95 transition-all"
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
           >
             <FileDown size={16} /> {t.exportPdf}
           </button>
@@ -1307,7 +1431,7 @@ const StatsPage = ({
       </div>
 
       {/* Search Functionality */}
-      <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+      <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 space-y-4">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
@@ -1365,7 +1489,7 @@ const StatsPage = ({
           </motion.div>
         ))}
         {filtered.length === 0 && (
-          <div className="bg-white rounded-3xl p-12 text-center text-slate-400 border border-dashed border-slate-200">
+          <div className="bg-white rounded-[32px] p-12 text-center text-slate-400 border border-dashed border-slate-200">
             {t.noRecords}
           </div>
         )}
@@ -1381,7 +1505,7 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
   handleAddGenie: (data: any) => void,
   handleAddSplit: (data: any) => void
 }) => {
-  const [mode, setMode] = useState<'BASIC' | 'GENIE' | 'SPLIT'>('BASIC');
+  const [mode, setMode] = useState<'BASIC' | 'SPLIT'>('BASIC');
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
@@ -1390,7 +1514,8 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
     type: RecordType.EXPENSE,
     paymentMethod: PaymentMethod.CASH,
     participants: [{ name: '', amount: '' }],
-    syncToBasic: false
+    syncToBasic: false,
+    paidByGenie: false
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1398,22 +1523,24 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
     if (!formData.name || !formData.amount) return;
 
     if (mode === 'BASIC') {
-      handleAddBasic({
-        name: formData.name,
-        amount: Number(formData.amount),
-        date: formData.date,
-        category: formData.category,
-        type: formData.type,
-        paymentMethod: formData.paymentMethod
-      });
-    } else if (mode === 'GENIE') {
-      handleAddGenie({
-        name: formData.name,
-        amount: Number(formData.amount),
-        date: formData.date,
-        category: formData.category,
-        paymentMethod: formData.paymentMethod
-      });
+      if (formData.paymentMethod === PaymentMethod.CREDIT_CARD && formData.paidByGenie) {
+        handleAddGenie({
+          name: formData.name,
+          amount: Number(formData.amount),
+          date: formData.date,
+          category: formData.category,
+          paymentMethod: formData.paymentMethod
+        });
+      } else {
+        handleAddBasic({
+          name: formData.name,
+          amount: Number(formData.amount),
+          date: formData.date,
+          category: formData.category,
+          type: formData.type,
+          paymentMethod: formData.paymentMethod
+        });
+      }
     } else if (mode === 'SPLIT') {
       const splitData = {
         name: formData.name,
@@ -1442,19 +1569,18 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
   return (
     <div className="p-4 space-y-6 relative min-h-[calc(100vh-160px)]">
       {/* Decorative Background Elements */}
-      <div className="absolute top-20 -left-10 w-40 h-40 bg-blue-100/50 rounded-full blur-3xl -z-10"></div>
+      <div className="absolute top-20 -left-10 w-40 h-40 bg-indigo-100/50 rounded-full blur-3xl -z-10"></div>
       <div className="absolute bottom-20 -right-10 w-60 h-60 bg-purple-100/50 rounded-full blur-3xl -z-10"></div>
       
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">{t.add}</h2>
-        <div className="w-10 h-10 bg-white rounded-2xl shadow-sm flex items-center justify-center text-blue-600">
+        <div className="w-10 h-10 bg-white rounded-2xl shadow-sm flex items-center justify-center text-indigo-600">
           <PlusCircle size={24} />
         </div>
       </div>
       
       <div className="flex bg-slate-200 p-1 rounded-2xl">
-        <button onClick={() => setMode('BASIC')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'BASIC' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>{t.basic}</button>
-        <button onClick={() => setMode('GENIE')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'GENIE' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500'}`}>{t.geniePay}</button>
+        <button onClick={() => setMode('BASIC')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'BASIC' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>{t.basic}</button>
         <button onClick={() => setMode('SPLIT')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'SPLIT' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}>{t.split}</button>
       </div>
 
@@ -1463,7 +1589,7 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit} 
-        className="space-y-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100"
+        className="space-y-4 bg-white p-6 rounded-[32px] shadow-sm border border-slate-100"
       >
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.name}</label>
@@ -1512,7 +1638,6 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
               >
                 {Object.entries(Category)
                   .filter(([_, val]) => {
-                    if (mode === 'GENIE') return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
                     if (formData.type === RecordType.INCOME) return [Category.SALARY, Category.BONUS, Category.INVESTMENT, Category.GIFT, Category.OTHER_INCOME, Category.INCOME].includes(val);
                     return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
                   })
@@ -1542,17 +1667,34 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
         )}
 
         {mode !== 'SPLIT' && (
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.paymentMethod}</label>
-            <select 
-              value={formData.paymentMethod}
-              onChange={e => setFormData({ ...formData, paymentMethod: e.target.value as PaymentMethod })}
-              className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
-            >
-              {Object.entries(PaymentMethod).map(([key, val]) => (
-                <option key={key} value={val}>{t.paymentMethods[val]}</option>
-              ))}
-            </select>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.paymentMethod}</label>
+              <select 
+                value={formData.paymentMethod}
+                onChange={e => setFormData({ ...formData, paymentMethod: e.target.value as PaymentMethod })}
+                className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
+              >
+                {Object.entries(PaymentMethod).map(([key, val]) => (
+                  <option key={key} value={val}>{t.paymentMethods[val]}</option>
+                ))}
+              </select>
+            </div>
+            
+            {formData.paymentMethod === PaymentMethod.CREDIT_CARD && formData.type === RecordType.EXPENSE && (
+              <label className="flex items-center gap-3 p-4 bg-purple-50 rounded-2xl cursor-pointer active:scale-[0.99] transition-all border border-purple-100">
+                <input 
+                  type="checkbox" 
+                  checked={formData.paidByGenie}
+                  onChange={e => setFormData({ ...formData, paidByGenie: e.target.checked })}
+                  className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+                />
+                <div>
+                  <span className="text-sm font-bold text-purple-700 block">{t.geniePay}</span>
+                  <span className="text-[10px] text-purple-500 block">Only record, do not deduct from balance</span>
+                </div>
+              </label>
+            )}
           </div>
         )}
 
@@ -1617,7 +1759,7 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
 
         <button 
           type="submit"
-          className={`w-full py-4 rounded-2xl text-white font-bold shadow-lg active:scale-95 transition-all mt-4 ${mode === 'BASIC' ? 'bg-blue-600' : mode === 'GENIE' ? 'bg-purple-600' : 'bg-emerald-600'}`}
+          className={`w-full py-4 rounded-2xl text-white font-bold shadow-lg active:scale-95 transition-all mt-4 ${mode === 'BASIC' ? 'bg-indigo-600 hover:bg-indigo-700' : mode === 'GENIE' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
         >
           {t.save}
         </button>
@@ -1811,13 +1953,14 @@ export default function App() {
   }, [basicRecords, settings.initialBalance, settings.dailyBudget, settings.genieBillingDay]);
 
   const genieCycles = useMemo(() => {
-    const cycles: Record<string, GeniePayRecord[]> = {};
+    const cycles: Record<string, any[]> = {};
+    
+    // Process Genie records (Paid by Genie, does not deduct balance)
     genieRecords.forEach(r => {
       const date = new Date(r.date);
       let month = date.getMonth();
       let year = date.getFullYear();
       
-      // If date is after billing day, it belongs to the next cycle
       if (date.getDate() > settings.genieBillingDay) {
         month += 1;
         if (month > 11) {
@@ -1828,19 +1971,41 @@ export default function App() {
       
       const cycleKey = `${year}-${(month + 1).toString().padStart(2, '0')}`;
       if (!cycles[cycleKey]) cycles[cycleKey] = [];
-      cycles[cycleKey].push(r);
+      cycles[cycleKey].push({ ...r, source: 'GENIE' });
     });
+
+    // Process Basic records that are Credit Card (Paid by Me, deducts balance)
+    basicRecords.filter(r => r.paymentMethod === PaymentMethod.CREDIT_CARD && r.type === RecordType.EXPENSE).forEach(r => {
+      const date = new Date(r.date);
+      let month = date.getMonth();
+      let year = date.getFullYear();
+      
+      if (date.getDate() > settings.genieBillingDay) {
+        month += 1;
+        if (month > 11) {
+          month = 0;
+          year += 1;
+        }
+      }
+      
+      const cycleKey = `${year}-${(month + 1).toString().padStart(2, '0')}`;
+      if (!cycles[cycleKey]) cycles[cycleKey] = [];
+      cycles[cycleKey].push({ ...r, source: 'BASIC' });
+    });
+
     return Object.entries(cycles)
       .map(([key, records]) => {
         const total = records.reduce((sum, r) => sum + r.amount, 0);
         const geniePays = records
-          .filter(r => r.paymentMethod === PaymentMethod.CREDIT_CARD)
+          .filter(r => r.source === 'GENIE')
           .reduce((sum, r) => sum + r.amount, 0);
-        const iPay = total - geniePays;
+        const iPay = records
+          .filter(r => r.source === 'BASIC')
+          .reduce((sum, r) => sum + r.amount, 0);
         const isPaid = records.length > 0 && records.every(r => r.isPaid);
         return {
           key,
-          records,
+          records: records.sort((a, b) => b.date.localeCompare(a.date)),
           total,
           geniePays,
           iPay,
@@ -1848,7 +2013,7 @@ export default function App() {
         };
       })
       .sort((a, b) => b.key.localeCompare(a.key));
-  }, [genieRecords, settings.genieBillingDay]);
+  }, [genieRecords, basicRecords, settings.genieBillingDay]);
 
   // --- Actions ---
   const handleAddBasic = (data: Omit<BasicRecord, 'id'>, shouldSwitchTab = true) => {
@@ -1862,6 +2027,9 @@ export default function App() {
   };
 
   const toggleGeniePaid = (cycleKey: string) => {
+    const cycle = genieCycles.find(c => c.key === cycleKey);
+    const newIsPaid = !cycle?.isPaid;
+
     setGenieRecords(prev => prev.map(r => {
       const d = new Date(r.date);
       let month = d.getMonth();
@@ -1871,10 +2039,24 @@ export default function App() {
         if (month > 11) { month = 0; year += 1; }
       }
       const rCycleKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-      if (rCycleKey === cycleKey.replace('-', '-')) { // Ensure format matches
-        // For simplicity, we toggle all records in the cycle to the opposite of the current cycle status
-        const cycle = genieCycles.find(c => c.key === cycleKey);
-        return { ...r, isPaid: !cycle?.isPaid };
+      if (rCycleKey === cycleKey) {
+        return { ...r, isPaid: newIsPaid };
+      }
+      return r;
+    }));
+
+    setBasicRecords(prev => prev.map(r => {
+      if (r.paymentMethod !== PaymentMethod.CREDIT_CARD || r.type !== RecordType.EXPENSE) return r;
+      const d = new Date(r.date);
+      let month = d.getMonth();
+      let year = d.getFullYear();
+      if (d.getDate() > settings.genieBillingDay) {
+        month += 1;
+        if (month > 11) { month = 0; year += 1; }
+      }
+      const rCycleKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      if (rCycleKey === cycleKey) {
+        return { ...r, isPaid: newIsPaid };
       }
       return r;
     }));
@@ -1961,54 +2143,115 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  const exportPdf = (cycleKey: string, records: GeniePayRecord[]) => {
-    const total = records.reduce((sum, r) => sum + r.amount, 0);
+  const exportPdf = (cycleKey: string, records: any[]) => {
+    const iPayRecords = records.filter(r => r.source !== 'GENIE');
+    const geniePaysRecords = records.filter(r => r.source === 'GENIE');
+
+    const totalIPay = iPayRecords.reduce((sum, r) => sum + r.amount, 0);
+    const totalGeniePays = geniePaysRecords.reduce((sum, r) => sum + r.amount, 0);
+    const grandTotal = totalIPay + totalGeniePays;
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const renderTable = (title: string, data: any[], subtotal: number) => `
+      <div class="section-title">${title}</div>
+      ${data.length > 0 ? `
+      <table>
+        <thead>
+          <tr>
+            <th>${t.date}</th>
+            <th>${t.name}</th>
+            <th>${t.category}</th>
+            <th style="text-align: right;">${t.amount}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(r => `
+            <tr>
+              <td>${r.date}</td>
+              <td>${r.name}</td>
+              <td>${t.categories[r.category]}</td>
+              <td style="text-align: right;">${formatCurrency(r.amount)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" style="text-align: right; font-weight: bold; color: #475569;">小計 (Subtotal)</td>
+            <td style="text-align: right; font-weight: bold; color: #1e293b;">${formatCurrency(subtotal)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      ` : `<p style="color: #94a3b8; margin-bottom: 30px; font-style: italic;">${t.noRecords}</p>`}
+    `;
 
     const html = `
       <html>
         <head>
           <title>${t.appName} - ${cycleKey}</title>
           <style>
-            body { font-family: sans-serif; padding: 40px; color: #333; }
-            h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; }
-            .meta { margin-bottom: 30px; display: flex; justify-content: space-between; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
-            th { background: #f9fafb; font-weight: 600; }
-            .total { text-align: right; font-size: 1.5rem; font-weight: bold; color: #7c3aed; }
-            .footer { margin-top: 50px; font-size: 0.8rem; color: #999; text-align: center; }
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; background: #fff; }
+            .watermark {
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%) rotate(-45deg);
+              font-size: 8rem;
+              color: rgba(0, 0, 0, 0.03);
+              z-index: -1;
+              white-space: nowrap;
+              pointer-events: none;
+              font-weight: 800;
+              letter-spacing: 0.05em;
+            }
+            .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #7c3aed; padding-bottom: 20px; margin-bottom: 30px; }
+            .header h1 { color: #7c3aed; margin: 0; font-size: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
+            .meta { text-align: right; font-size: 0.95rem; color: #64748b; }
+            .meta strong { color: #1e293b; }
+            .section-title { color: #334155; margin-top: 40px; margin-bottom: 15px; font-size: 1.25rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-left: 4px solid #7c3aed; padding-left: 12px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 0.95rem; }
+            th, td { text-align: left; padding: 14px 12px; border-bottom: 1px solid #e2e8f0; }
+            th { background: #f8fafc; font-weight: 600; color: #475569; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; }
+            tbody tr:hover { background: #f8fafc; }
+            tfoot td { background: #f8fafc; border-top: 2px solid #cbd5e1; }
+            .summary-box { background: #f8fafc; padding: 24px; border-radius: 12px; margin-top: 40px; border: 1px solid #e2e8f0; width: 320px; margin-left: auto; }
+            .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05rem; color: #475569; }
+            .summary-row.grand-total { font-size: 1.5rem; font-weight: 700; color: #7c3aed; border-top: 2px solid #e2e8f0; padding-top: 16px; margin-top: 16px; margin-bottom: 0; }
+            .footer { margin-top: 60px; font-size: 0.85rem; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px; }
           </style>
         </head>
         <body>
-          <h1>${t.appName} - ${t.geniePay}</h1>
-          <div class="meta">
-            <div><strong>${t.billingCycle}:</strong> ${cycleKey}</div>
-            <div><strong>${t.date}:</strong> ${new Date().toLocaleDateString()}</div>
+          <div class="watermark">${t.appName}</div>
+          <div class="header">
+            <h1>${t.appName}</h1>
+            <div class="meta">
+              <div><strong>${t.geniePay} Statement</strong></div>
+              <div><strong>${t.billingCycle}:</strong> ${cycleKey}</div>
+              <div><strong>${t.date}:</strong> ${new Date().toLocaleDateString()}</div>
+            </div>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>${t.date}</th>
-                <th>${t.name}</th>
-                <th>${t.category}</th>
-                <th style="text-align: right;">${t.amount}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${records.map(r => `
-                <tr>
-                  <td>${r.date}</td>
-                  <td>${r.name}</td>
-                  <td>${t.categories[r.category]}</td>
-                  <td style="text-align: right;">${formatCurrency(r.amount)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <div class="total">${t.totalSum}: ${formatCurrency(total)}</div>
-          <div class="footer">Generated by ${t.appName}</div>
+
+          ${renderTable(t.iPay, iPayRecords, totalIPay)}
+          ${renderTable(t.geniePays, geniePaysRecords, totalGeniePays)}
+
+          <div class="summary-box">
+            <div class="summary-row">
+              <span>${t.iPay}:</span>
+              <span>${formatCurrency(totalIPay)}</span>
+            </div>
+            <div class="summary-row">
+              <span>${t.geniePays}:</span>
+              <span>${formatCurrency(totalGeniePays)}</span>
+            </div>
+            <div class="summary-row grand-total">
+              <span>${t.totalSum}:</span>
+              <span>${formatCurrency(grandTotal)}</span>
+            </div>
+          </div>
+
+          <div class="footer">Generated securely by ${t.appName} &bull; ${new Date().toLocaleString()}</div>
         </body>
       </html>
     `;

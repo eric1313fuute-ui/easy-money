@@ -2,7 +2,7 @@ import { Language } from './types';
 
 export const translations = {
   [Language.ZH]: {
-    appName: '輕鬆記帳',
+    appName: 'E記帳',
     dashboard: '總覽',
     basic: '記帳',
     geniePay: '神燈',
@@ -61,8 +61,8 @@ export const translations = {
       BANK_TRANSFER: '銀行轉帳',
       DIGITAL_PAYMENT: '電子支付',
     },
-    iPay: '我要付的',
-    geniePays: '神燈幫我付的',
+    iPay: 'ERIC',
+    geniePays: '神燈',
     status: '狀態',
     paid: '已繳清',
     unpaid: '未繳清',
@@ -85,7 +85,7 @@ export const translations = {
     },
   },
   [Language.EN]: {
-    appName: 'Easy Accounting',
+    appName: 'E money',
     dashboard: 'Dashboard',
     basic: 'Basic',
     geniePay: 'Genie',
@@ -144,8 +144,8 @@ export const translations = {
       BANK_TRANSFER: 'Bank Transfer',
       DIGITAL_PAYMENT: 'Digital Payment',
     },
-    iPay: 'I Pay',
-    geniePays: 'Genie Pays',
+    iPay: 'ERIC',
+    geniePays: 'Genie',
     status: 'Status',
     paid: 'Paid',
     unpaid: 'Unpaid',

@@ -46,6 +46,7 @@ export interface BasicRecord {
   category: Category;
   type: RecordType;
   paymentMethod: PaymentMethod;
+  isPaid?: boolean;
 }
 
 export interface GeniePayRecord {
