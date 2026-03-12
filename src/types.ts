@@ -47,6 +47,7 @@ export interface BasicRecord {
   type: RecordType;
   paymentMethod: PaymentMethod;
   isPaid?: boolean;
+  isRepayment?: boolean;
 }
 
 export interface GeniePayRecord {
@@ -71,6 +72,7 @@ export interface SplitRecord {
   totalAmount: number;
   date: string;
   participants: SplitParticipant[];
+  paymentMethod: PaymentMethod;
 }
 
 export enum RecurringPeriod {

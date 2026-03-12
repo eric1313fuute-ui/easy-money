@@ -685,6 +685,16 @@ const ConfirmModal = ({ confirmData, setConfirmData, t }: { confirmData: any, se
   );
 };
 
+const getPaymentMethodIcon = (method: PaymentMethod) => {
+  switch (method) {
+    case PaymentMethod.CASH: return <Coins size={20} />;
+    case PaymentMethod.CREDIT_CARD: return <CreditCard size={20} />;
+    case PaymentMethod.BANK_TRANSFER: return <Wallet size={20} />;
+    case PaymentMethod.DIGITAL_PAYMENT: return <Zap size={20} />;
+    default: return <Receipt size={20} />;
+  }
+};
+
 const SplitTracker = ({ 
   t, 
   splitRecords, 
@@ -697,88 +707,134 @@ const SplitTracker = ({
   setRepaymentData: (data: any) => void, 
   setSelectedRecord: (rec: any) => void, 
   formatCurrency: (val: number) => string 
-}) => (
-  <div className="p-4 space-y-6 pb-24">
-    <h2 className="text-2xl font-bold text-slate-800">{t.split}</h2>
-
-    <div className="space-y-4">
-      {splitRecords.map((record, i) => {
-        const totalPaid = record.participants.reduce((sum, p) => sum + p.paid, 0);
-        const isFullyPaid = totalPaid >= record.totalAmount;
-
-        return (
-          <motion.div 
-            key={record.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden relative"
-          >
-            {/* Decorative Background Icon */}
-            <FloatingIcon className="absolute -left-4 -bottom-4 opacity-[0.03] rotate-12">
-              <Users size={120} />
-            </FloatingIcon>
-
-            <div className="p-6 space-y-4 relative z-10">
-              <div className="flex items-center justify-between">
-                <div onClick={() => setSelectedRecord({ type: 'SPLIT', data: record })} className="cursor-pointer flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
-                    <Receipt size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-800">{record.name}</h3>
-                    <p className="text-slate-400 text-[10px]">{record.date}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-emerald-600 font-bold">{formatCurrency(record.totalAmount)}</p>
-                  <p className="text-[10px] text-slate-400 font-medium">
-                    {t.remainingAmount}: {formatCurrency(record.totalAmount - totalPaid)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {record.participants.map(p => (
-                  <div key={p.name} className="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-2xl">
-                    <div className="flex items-center gap-2">
-                      {p.paid >= p.amount ? <CheckCircle2 size={16} className="text-emerald-500" /> : <div className="w-4 h-4 rounded-full border-2 border-slate-200" />}
-                      <span className="text-sm font-medium text-slate-700">{p.name}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-slate-800">{formatCurrency(p.paid)} / {formatCurrency(p.amount)}</p>
+}) => {
+  const [view, setView] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
+  return (
+    <div className="p-4 space-y-6 pb-24">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800">{view === 'ACTIVE' ? t.split : t.history}</h2>
+        <button 
+          onClick={() => setView(view === 'ACTIVE' ? 'HISTORY' : 'ACTIVE')}
+          className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
+        >
+          {view === 'ACTIVE' ? t.history : t.split}
+        </button>
+      </div>
+      {view === 'ACTIVE' ? (
+        <div className="space-y-4">
+          {splitRecords
+            .filter(record => {
+              const totalPaid = record.participants.reduce((sum, p) => sum + p.paid, 0);
+              return totalPaid < record.totalAmount;
+            })
+            .map((record, i) => {
+              const totalPaid = record.participants.reduce((sum, p) => sum + p.paid, 0);
+              return (
+                <motion.div 
+                  key={record.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden relative"
+                >
+                  <FloatingIcon className="absolute -left-4 -bottom-4 opacity-[0.03] rotate-12">
+                    <Users size={120} />
+                  </FloatingIcon>
+                  <div className="p-6 space-y-4 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div onClick={() => setSelectedRecord({ type: 'SPLIT', data: record })} className="cursor-pointer flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+                          {getPaymentMethodIcon(record.paymentMethod)}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-800">{record.name}</h3>
+                          <p className="text-slate-400 text-[10px]">{record.date}</p>
+                        </div>
                       </div>
-                      {p.paid < p.amount && (
-                        <button 
-                          onClick={() => setRepaymentData({ splitId: record.id, participantName: p.name, remaining: p.amount - p.paid })}
-                          className="bg-emerald-100 text-emerald-600 p-2 rounded-xl active:scale-90 transition-all"
-                        >
-                          <PlusCircle size={16} />
-                        </button>
-                      )}
+                      <div className="text-right">
+                        <p className="text-emerald-600 font-bold">{formatCurrency(record.totalAmount)}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {t.remainingAmount}: {formatCurrency(record.totalAmount - totalPaid)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {record.participants.map(p => (
+                        <div key={p.name} className="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-2xl">
+                          <div className="flex items-center gap-2">
+                            {p.paid >= p.amount ? <CheckCircle2 size={16} className="text-emerald-500" /> : <div className="w-4 h-4 rounded-full border-2 border-slate-200" />}
+                            <span className="text-sm font-medium text-slate-700">{p.name}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="text-xs font-bold text-slate-800">{formatCurrency(p.paid)} / {formatCurrency(p.amount)}</p>
+                            </div>
+                            {p.paid < p.amount && (
+                              <button 
+                                onClick={() => setRepaymentData({ splitId: record.id, participantName: p.name, remaining: p.amount - p.paid })}
+                                className="bg-emerald-100 text-emerald-600 p-2 rounded-xl active:scale-90 transition-all"
+                              >
+                                <PlusCircle size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {isFullyPaid && (
-                <div className="flex items-center justify-center gap-2 py-2 bg-emerald-50 rounded-2xl text-emerald-600 text-[10px] font-bold uppercase tracking-wider">
-                  <CheckCircle2 size={14} /> {t.settled}
-                </div>
-              )}
+                </motion.div>
+              );
+            })}
+          {splitRecords.filter(record => record.participants.reduce((sum, p) => sum + p.paid, 0) < record.totalAmount).length === 0 && (
+            <div className="bg-white rounded-[32px] p-12 text-center text-slate-400 border border-dashed border-slate-200">
+              {t.noRecords}
             </div>
-          </motion.div>
-        );
-      })}
-      {splitRecords.length === 0 && (
-        <div className="bg-white rounded-[32px] p-12 text-center text-slate-400 border border-dashed border-slate-200">
-          {t.noRecords}
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {splitRecords
+            .filter(record => {
+              const totalPaid = record.participants.reduce((sum, p) => sum + p.paid, 0);
+              return totalPaid >= record.totalAmount;
+            })
+            .map((record, i) => (
+              <motion.div 
+                key={record.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden relative"
+              >
+                <div className="p-6 relative z-10 flex items-center justify-between">
+                  <div onClick={() => setSelectedRecord({ type: 'SPLIT', data: record })} className="cursor-pointer flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                      {getPaymentMethodIcon(record.paymentMethod)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800">{record.name}</h3>
+                      <p className="text-slate-400 text-[10px]">{record.date}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-slate-400 font-bold">{formatCurrency(record.totalAmount)}</p>
+                    <div className="flex items-center justify-center gap-2 py-1 bg-emerald-50 rounded-xl text-emerald-600 text-[10px] font-bold uppercase tracking-wider px-2">
+                      <CheckCircle2 size={12} /> {t.settled}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          {splitRecords.filter(record => record.participants.reduce((sum, p) => sum + p.paid, 0) >= record.totalAmount).length === 0 && (
+            <div className="bg-white rounded-[32px] p-12 text-center text-slate-400 border border-dashed border-slate-200">
+              {t.noRecords}
+            </div>
+          )}
         </div>
       )}
     </div>
-  </div>
-);
+  );
+};
 
 const GeniePay = ({ 
   t, 
@@ -954,8 +1010,14 @@ const Dashboard = ({
   const dailyData = useMemo(() => {
     const records = basicRecords.filter(r => r.date === viewDate);
     const expense = records
-      .filter(r => r.type === RecordType.EXPENSE)
-      .reduce((sum, r) => sum + r.amount, 0);
+      .reduce((sum, r) => {
+        if (r.type === RecordType.EXPENSE) {
+          return sum + r.amount;
+        } else if (r.type === RecordType.INCOME && r.isRepayment) {
+          return sum - r.amount;
+        }
+        return sum;
+      }, 0);
     return {
       records,
       expense,
@@ -1935,8 +1997,14 @@ export default function App() {
     const todayStr = getToday();
     const dailyRecords = basicRecords.filter(r => r.date === todayStr);
     const dailyExpense = dailyRecords
-      .filter(r => r.type === RecordType.EXPENSE)
-      .reduce((sum, r) => sum + r.amount, 0);
+      .reduce((sum, r) => {
+        if (r.type === RecordType.EXPENSE) {
+          return sum + r.amount;
+        } else if (r.type === RecordType.INCOME && r.isRepayment) {
+          return sum - r.amount;
+        }
+        return sum;
+      }, 0);
 
     return { 
       income, 
@@ -2108,7 +2176,8 @@ export default function App() {
         date: getToday(),
         category: Category.INCOME,
         type: RecordType.INCOME,
-        paymentMethod: PaymentMethod.CASH
+        paymentMethod: PaymentMethod.CASH,
+        isRepayment: true
       }, false);
     }
   };
