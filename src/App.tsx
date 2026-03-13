@@ -747,7 +747,7 @@ const SplitTracker = ({
                           {getPaymentMethodIcon(record.paymentMethod)}
                         </div>
                         <div>
-                          <h3 className="font-bold text-slate-800">{record.name}</h3>
+                          <h3 className="font-medium text-slate-600 text-xs">{record.name}</h3>
                           <p className="text-slate-400 text-[10px]">{record.date}</p>
                         </div>
                       </div>
@@ -812,7 +812,7 @@ const SplitTracker = ({
                       {getPaymentMethodIcon(record.paymentMethod)}
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-800">{record.name}</h3>
+                      <h3 className="font-medium text-slate-600 text-xs">{record.name}</h3>
                       <p className="text-slate-400 text-[10px]">{record.date}</p>
                     </div>
                   </div>
@@ -849,13 +849,14 @@ const GeniePay = ({
   settings: AppSettings, 
   genieCycles: any[], 
   setSelectedRecord: (rec: any) => void, 
-  exportPdf: (cycle: any) => void, 
+  exportPdf: (cycle: any, hideName: boolean) => void, 
   formatCurrency: (val: number) => string,
   toggleGeniePaid: (cycleKey: string) => void
 }) => {
   const [activeCycleKey, setActiveCycleKey] = useState<string | null>(
     genieCycles.length > 0 ? genieCycles[0].key : null
   );
+  const [hideNameInExport, setHideNameInExport] = useState(false);
 
   useEffect(() => {
     if (genieCycles.length > 0 && !genieCycles.find(c => c.key === activeCycleKey)) {
@@ -871,9 +872,26 @@ const GeniePay = ({
     <div className="p-4 space-y-6 pb-24">
       <div className="flex items-center justify-between px-2">
         <h2 className="text-2xl font-bold text-slate-800">{t.geniePay}</h2>
-        <div className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-          {t.billingDay}: {settings.genieBillingDay}
+        <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
+              <input 
+                type="checkbox" 
+                checked={hideNameInExport} 
+                onChange={e => setHideNameInExport(e.target.checked)}
+                className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+              />
+              {t.hideName}
+            </label>
+            <button 
+              onClick={() => exportPdf(activeCycle, hideNameInExport)}
+              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-purple-700 active:scale-95 transition-all"
+            >
+              <FileDown size={16} /> {t.exportPdf}
+            </button>
         </div>
+      </div>
+      <div className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block">
+          {t.billingDay}: {settings.genieBillingDay}
       </div>
 
       {genieCycles.length > 0 && (
@@ -970,7 +988,7 @@ const GeniePay = ({
                 </div>
                 
                 <button 
-                  onClick={() => exportPdf(activeCycle)}
+                  onClick={() => exportPdf(activeCycle, hideNameInExport)}
                   className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md"
                 >
                   <FileDown size={16} /> {t.exportPdf}
@@ -1214,7 +1232,7 @@ const Dashboard = ({
   );
 };
 
-const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, periodKey: string, basic: BasicRecord[], genie: GeniePayRecord[]) => {
+const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, periodKey: string, basic: BasicRecord[], genie: GeniePayRecord[], hideName: boolean) => {
   const totalBasic = basic.reduce((sum, r) => r.type === RecordType.EXPENSE ? sum + r.amount : sum - r.amount, 0);
   const totalGenie = genie.reduce((sum, r) => sum + r.amount, 0);
   const total = totalBasic + totalGenie;
@@ -1276,7 +1294,7 @@ const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, pe
           <thead>
             <tr>
               <th>${t.date}</th>
-              <th>${t.name}</th>
+              ${!hideName ? `<th>${t.name}</th>` : ''}
               <th>${t.category}</th>
               <th style="text-align: right;">${t.amount}</th>
             </tr>
@@ -1285,7 +1303,7 @@ const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, pe
             ${basic.map(r => `
               <tr>
                 <td>${r.date}</td>
-                <td>${r.name}</td>
+                ${!hideName ? `<td>${r.name}</td>` : ''}
                 <td>${t.categories[r.category]}</td>
                 <td style="text-align: right;" class="${r.type === RecordType.INCOME ? 'income' : 'expense'}">
                   ${r.type === RecordType.INCOME ? '+' : '-'}${formatCurrency(r.amount)}
@@ -1302,7 +1320,7 @@ const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, pe
           <thead>
             <tr>
               <th>${t.date}</th>
-              <th>${t.name}</th>
+              ${!hideName ? `<th>${t.name}</th>` : ''}
               <th>${t.category}</th>
               <th style="text-align: right;">${t.amount}</th>
             </tr>
@@ -1311,7 +1329,7 @@ const exportFullPeriodPdf = (t: any, formatCurrency: (val: number) => string, pe
             ${genie.map(r => `
               <tr>
                 <td>${r.date}</td>
-                <td>${r.name}</td>
+                ${!hideName ? `<td>${r.name}</td>` : ''}
                 <td>${t.categories[r.category]}</td>
                 <td style="text-align: right;" class="expense">
                   -${formatCurrency(r.amount)}
@@ -1360,12 +1378,13 @@ const StatsPage = ({
   settings: AppSettings, 
   formatCurrency: (val: number) => string, 
   setSelectedRecord: (rec: any) => void,
-  onExportFullPeriodPdf: (periodKey: string, basic: BasicRecord[], genie: GeniePayRecord[]) => void
+  onExportFullPeriodPdf: (periodKey: string, basic: BasicRecord[], genie: GeniePayRecord[], hideName: boolean) => void
 }) => {
   const [query, setQuery] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [categoryFilter, setCategoryFilter] = useState<Category | 'ALL'>('ALL');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
+  const [hideNameInExport, setHideNameInExport] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -1449,12 +1468,23 @@ const StatsPage = ({
           >
             {periods.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
-          <button 
-            onClick={() => onExportFullPeriodPdf(selectedPeriod, periodData.basic, periodData.genie)}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
-          >
-            <FileDown size={16} /> {t.exportPdf}
-          </button>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
+              <input 
+                type="checkbox" 
+                checked={hideNameInExport} 
+                onChange={e => setHideNameInExport(e.target.checked)}
+                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              {t.hideName}
+            </label>
+            <button 
+              onClick={() => onExportFullPeriodPdf(selectedPeriod, periodData.basic, periodData.genie, hideNameInExport)}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
+            >
+              <FileDown size={16} /> {t.exportPdf}
+            </button>
+          </div>
         </div>
 
         <motion.div 
@@ -2212,7 +2242,7 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  const exportPdf = (cycleKey: string, records: any[]) => {
+  const exportPdf = (cycleKey: string, records: any[], hideName: boolean) => {
     const iPayRecords = records.filter(r => r.source !== 'GENIE');
     const geniePaysRecords = records.filter(r => r.source === 'GENIE');
 
@@ -2230,7 +2260,7 @@ export default function App() {
         <thead>
           <tr>
             <th>${t.date}</th>
-            <th>${t.name}</th>
+            ${!hideName ? `<th>${t.name}</th>` : ''}
             <th>${t.category}</th>
             <th style="text-align: right;">${t.amount}</th>
           </tr>
@@ -2239,7 +2269,7 @@ export default function App() {
           ${data.map(r => `
             <tr>
               <td>${r.date}</td>
-              <td>${r.name}</td>
+              ${!hideName ? `<td>${r.name}</td>` : ''}
               <td>${t.categories[r.category]}</td>
               <td style="text-align: right;">${formatCurrency(r.amount)}</td>
             </tr>
@@ -2247,7 +2277,7 @@ export default function App() {
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="3" style="text-align: right; font-weight: bold; color: #475569;">小計 (Subtotal)</td>
+            <td colspan="${!hideName ? 3 : 2}" style="text-align: right; font-weight: bold; color: #475569;">小計 (Subtotal)</td>
             <td style="text-align: right; font-weight: bold; color: #1e293b;">${formatCurrency(subtotal)}</td>
           </tr>
         </tfoot>
@@ -2351,7 +2381,7 @@ export default function App() {
       
       <main className="max-w-md mx-auto">
         {activeTab === 'DASHBOARD' && <Dashboard t={t} stats={stats} basicRecords={basicRecords} setActiveTab={setActiveTab} setSelectedRecord={setSelectedRecord} formatCurrency={formatCurrency} />}
-        {activeTab === 'GENIE' && <GeniePay t={t} settings={settings} genieCycles={genieCycles} setSelectedRecord={setSelectedRecord} exportPdf={(cycle) => exportPdf(cycle.key, cycle.records)} formatCurrency={formatCurrency} toggleGeniePaid={toggleGeniePaid} />}
+        {activeTab === 'GENIE' && <GeniePay t={t} settings={settings} genieCycles={genieCycles} setSelectedRecord={setSelectedRecord} exportPdf={(cycle, hideName) => exportPdf(cycle.key, cycle.records, hideName)} formatCurrency={formatCurrency} toggleGeniePaid={toggleGeniePaid} />}
         {activeTab === 'ADD' && <AddRecord t={t} getToday={getToday} handleAddBasic={handleAddBasic} handleAddGenie={handleAddGenie} handleAddSplit={handleAddSplit} />}
         {activeTab === 'SPLIT' && <SplitTracker t={t} splitRecords={splitRecords} setRepaymentData={setRepaymentData} setSelectedRecord={setSelectedRecord} formatCurrency={formatCurrency} />}
         {activeTab === 'STATS' && (
@@ -2362,7 +2392,7 @@ export default function App() {
             settings={settings} 
             formatCurrency={formatCurrency} 
             setSelectedRecord={setSelectedRecord} 
-            onExportFullPeriodPdf={(periodKey, basic, genie) => exportFullPeriodPdf(t, formatCurrency, periodKey, basic, genie)} 
+            onExportFullPeriodPdf={(periodKey, basic, genie, hideName) => exportFullPeriodPdf(t, formatCurrency, periodKey, basic, genie, hideName)} 
           />
         )}
       </main>
