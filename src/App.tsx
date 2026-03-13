@@ -924,31 +924,28 @@ const GeniePay = ({
 
   return (
     <div className="p-4 space-y-6 pb-24">
-      <div className="flex flex-col gap-4 px-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-800">{t.geniePay}</h2>
-          <div className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-            {t.billingDay}: {settings.genieBillingDay}
-          </div>
+      <div className="flex items-center justify-between px-2">
+        <h2 className="text-2xl font-bold text-slate-800">{t.geniePay}</h2>
+        <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
+              <input 
+                type="checkbox" 
+                checked={hideNameInExport} 
+                onChange={e => setHideNameInExport(e.target.checked)}
+                className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+              />
+              {t.hideName}
+            </label>
+            <button 
+              onClick={() => exportPdf(activeCycle, hideNameInExport)}
+              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-purple-700 active:scale-95 transition-all"
+            >
+              <FileDown size={16} /> {t.exportPdf}
+            </button>
         </div>
-        
-        <div className="flex items-center justify-between bg-purple-50 p-3 rounded-2xl border border-purple-100">
-          <label className="flex items-center gap-2 text-xs font-bold text-purple-700">
-            <input 
-              type="checkbox" 
-              checked={hideNameInExport} 
-              onChange={e => setHideNameInExport(e.target.checked)}
-              className="rounded border-purple-300 text-purple-600 focus:ring-purple-500"
-            />
-            {t.hideName}
-          </label>
-          <button 
-            onClick={() => exportPdf(activeCycle, hideNameInExport)}
-            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-purple-700 active:scale-95 transition-all"
-          >
-            <FileDown size={16} /> {t.exportPdf}
-          </button>
-        </div>
+      </div>
+      <div className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block">
+          {t.billingDay}: {settings.genieBillingDay}
       </div>
 
       {genieCycles.length > 0 && (
@@ -1043,13 +1040,6 @@ const GeniePay = ({
                     <div className="text-center py-4 text-slate-400 text-sm italic">{t.noRecords}</div>
                   )}
                 </div>
-                
-                <button 
-                  onClick={() => exportPdf(activeCycle, hideNameInExport)}
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md"
-                >
-                  <FileDown size={16} /> {t.exportPdf}
-                </button>
               </div>
             </div>
           </motion.div>
