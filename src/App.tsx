@@ -31,7 +31,9 @@ import {
   Coins,
   Receipt,
   ArrowDownRight,
-  ArrowUpRight
+  ArrowUpRight,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -1071,6 +1073,7 @@ const Dashboard = ({
   formatCurrency: (val: number) => string 
 }) => {
   const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showBalance, setShowBalance] = useState(false);
 
   const dailyData = useMemo(() => {
     const records = basicRecords.filter(r => r.date === viewDate);
@@ -1127,12 +1130,22 @@ const Dashboard = ({
         
         <div className="relative z-10">
           <div className="flex justify-between items-start mb-1">
-            <p className="text-indigo-300 text-[10px] font-bold uppercase tracking-widest">{t.totalBalance}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-indigo-300 text-[10px] font-bold uppercase tracking-widest">{t.totalBalance}</p>
+              <button 
+                onClick={() => setShowBalance(!showBalance)} 
+                className="text-indigo-300 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
+              >
+                {showBalance ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
             <span className="bg-white/10 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-tighter text-white/60">
               Cycle: {stats.currentCycleKey}
             </span>
           </div>
-          <h2 className="text-5xl font-bold tracking-tight">{formatCurrency(stats.balance)}</h2>
+          <h2 className="text-5xl font-bold tracking-tight">
+            {showBalance ? formatCurrency(stats.balance) : '******'}
+          </h2>
           
           <div className="grid grid-cols-2 gap-6 mt-8 pt-6 border-t border-white/10">
             <motion.div
