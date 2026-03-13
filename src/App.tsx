@@ -427,11 +427,16 @@ const DetailModal = ({
   handleUpdateRecord: (type: any, id: string, data: any) => void, 
   handleDeleteRecord: (type: any, id: string) => void 
 }) => {
-  if (!selectedRecord) return null;
   const { type, data } = selectedRecord;
+  const [participants, setParticipants] = useState(data.participants || []);
+
+  useEffect(() => {
+    if (type === 'SPLIT') {
+      setParticipants(data.participants || []);
+    }
+  }, [selectedRecord]);
 
   return (
-    <AnimatePresence>
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -456,35 +461,92 @@ const DetailModal = ({
             <form onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
-              const updated = {
+              let updated: any = {
                 name: formData.get('name') as string,
-                amount: Number(formData.get('amount')),
                 date: formData.get('date') as string,
-                category: formData.get('category') as Category,
-                type: formData.get('type') as RecordType,
-                paymentMethod: formData.get('paymentMethod') as PaymentMethod,
               };
+              if (type === 'SPLIT') {
+                updated.totalAmount = Number(formData.get('totalAmount'));
+                updated.category = formData.get('category') as Category;
+                updated.paymentMethod = formData.get('paymentMethod') as PaymentMethod;
+                updated.participants = participants;
+              } else {
+                updated.amount = Number(formData.get('amount'));
+                updated.category = formData.get('category') as Category;
+                updated.type = formData.get('type') as RecordType;
+                updated.paymentMethod = formData.get('paymentMethod') as PaymentMethod;
+              }
               handleUpdateRecord(type, data.id, updated);
             }} className="space-y-4">
-              <input name="name" defaultValue={data.name} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
-              <input name="amount" type="number" defaultValue={data.amount} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
-              <input name="date" type="date" defaultValue={data.date} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
-              {type !== 'SPLIT' && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-400">{t.name}</label>
+                <input name="name" defaultValue={data.name} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
+              </div>
+              {type === 'SPLIT' ? (
                 <>
-                  <input type="hidden" name="type" value={data.type || RecordType.EXPENSE} />
-                  <select name="category" defaultValue={data.category} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3">
-                    {Object.entries(Category)
-                      .filter(([_, val]) => {
-                        if (type === 'GENIE') return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
-                        if (data.type === RecordType.INCOME) return [Category.SALARY, Category.BONUS, Category.INVESTMENT, Category.GIFT, Category.OTHER_INCOME, Category.INCOME].includes(val);
-                        return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
-                      })
-                      .map(([k, v]) => <option key={k} value={v}>{t.categories[v]}</option>)}
-                  </select>
-                  {type === 'BASIC' ? (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-400">{t.totalAmount}</label>
+                    <input name="totalAmount" type="number" defaultValue={data.totalAmount} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-400">{t.date}</label>
+                    <input name="date" type="date" defaultValue={data.date} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-400">{t.category}</label>
+                    <select name="category" defaultValue={data.category} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3">
+                      {Object.entries(Category)
+                        .filter(([_, val]) => [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val))
+                        .map(([k, v]) => <option key={k} value={v}>{t.categories[v]}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-400">{t.paymentMethod}</label>
                     <select name="paymentMethod" defaultValue={data.paymentMethod} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3">
                       {Object.entries(PaymentMethod).map(([k, v]) => <option key={k} value={v}>{t.paymentMethods[v]}</option>)}
                     </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400">{t.participants}</label>
+                    {participants.map((p: any, idx: number) => (
+                      <div key={idx} className="flex gap-2">
+                        <input value={p.name} onChange={e => setParticipants(participants.map((part: any, i: number) => i === idx ? {...part, name: e.target.value} : part))} className="flex-1 bg-slate-50 border-none rounded-2xl px-4 py-3" />
+                        <input type="number" value={p.amount} onChange={e => setParticipants(participants.map((part: any, i: number) => i === idx ? {...part, amount: Number(e.target.value)} : part))} className="w-20 bg-slate-50 border-none rounded-2xl px-4 py-3" />
+                        <input type="number" value={p.paid} onChange={e => setParticipants(participants.map((part: any, i: number) => i === idx ? {...part, paid: Number(e.target.value)} : part))} className="w-20 bg-slate-50 border-none rounded-2xl px-4 py-3" />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-400">{t.amount}</label>
+                    <input name="amount" type="number" defaultValue={data.amount} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-400">{t.date}</label>
+                    <input name="date" type="date" defaultValue={data.date} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" required />
+                  </div>
+                  <input type="hidden" name="type" value={data.type || RecordType.EXPENSE} />
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-400">{t.category}</label>
+                    <select name="category" defaultValue={data.category} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3">
+                      {Object.entries(Category)
+                        .filter(([_, val]) => {
+                          if (type === 'GENIE') return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
+                          if (data.type === RecordType.INCOME) return [Category.SALARY, Category.BONUS, Category.INVESTMENT, Category.GIFT, Category.OTHER_INCOME, Category.INCOME].includes(val);
+                          return [Category.FOOD, Category.TRANSPORT, Category.SHOPPING, Category.ENTERTAINMENT, Category.HEALTH, Category.HOUSING, Category.EDUCATION, Category.OTHER_EXPENSE, Category.OTHER].includes(val);
+                        })
+                        .map(([k, v]) => <option key={k} value={v}>{t.categories[v]}</option>)}
+                    </select>
+                  </div>
+                  {type === 'BASIC' ? (
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400">{t.paymentMethod}</label>
+                      <select name="paymentMethod" defaultValue={data.paymentMethod} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3">
+                        {Object.entries(PaymentMethod).map(([k, v]) => <option key={k} value={v}>{t.paymentMethods[v]}</option>)}
+                      </select>
+                    </div>
                   ) : (
                     <input type="hidden" name="paymentMethod" value={PaymentMethod.CREDIT_CARD} />
                   )}
@@ -537,7 +599,6 @@ const DetailModal = ({
         </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 };
 
@@ -564,10 +625,7 @@ const RepaymentModal = ({
     }
   }, [repaymentData]);
 
-  if (!repaymentData) return null;
-
   return (
-    <AnimatePresence>
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -638,15 +696,11 @@ const RepaymentModal = ({
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 };
 
 const ConfirmModal = ({ confirmData, setConfirmData, t }: { confirmData: any, setConfirmData: (data: any) => void, t: any }) => {
-  if (!confirmData) return null;
-
   return (
-    <AnimatePresence>
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -681,7 +735,6 @@ const ConfirmModal = ({ confirmData, setConfirmData, t }: { confirmData: any, se
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 };
 
@@ -709,6 +762,7 @@ const SplitTracker = ({
   formatCurrency: (val: number) => string 
 }) => {
   const [view, setView] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
+
   return (
     <div className="p-4 space-y-6 pb-24">
       <div className="flex items-center justify-between">
@@ -870,28 +924,31 @@ const GeniePay = ({
 
   return (
     <div className="p-4 space-y-6 pb-24">
-      <div className="flex items-center justify-between px-2">
-        <h2 className="text-2xl font-bold text-slate-800">{t.geniePay}</h2>
-        <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
-              <input 
-                type="checkbox" 
-                checked={hideNameInExport} 
-                onChange={e => setHideNameInExport(e.target.checked)}
-                className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
-              />
-              {t.hideName}
-            </label>
-            <button 
-              onClick={() => exportPdf(activeCycle, hideNameInExport)}
-              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-purple-700 active:scale-95 transition-all"
-            >
-              <FileDown size={16} /> {t.exportPdf}
-            </button>
+      <div className="flex flex-col gap-4 px-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-slate-800">{t.geniePay}</h2>
+          <div className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+            {t.billingDay}: {settings.genieBillingDay}
+          </div>
         </div>
-      </div>
-      <div className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block">
-          {t.billingDay}: {settings.genieBillingDay}
+        
+        <div className="flex items-center justify-between bg-purple-50 p-3 rounded-2xl border border-purple-100">
+          <label className="flex items-center gap-2 text-xs font-bold text-purple-700">
+            <input 
+              type="checkbox" 
+              checked={hideNameInExport} 
+              onChange={e => setHideNameInExport(e.target.checked)}
+              className="rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+            />
+            {t.hideName}
+          </label>
+          <button 
+            onClick={() => exportPdf(activeCycle, hideNameInExport)}
+            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-purple-700 active:scale-95 transition-all"
+          >
+            <FileDown size={16} /> {t.exportPdf}
+          </button>
+        </div>
       </div>
 
       {genieCycles.length > 0 && (
@@ -1414,9 +1471,10 @@ const StatsPage = ({
   }, [periods]);
 
   const periodData = useMemo(() => {
-    if (!selectedPeriod) return { basic: [], genie: [], chartData: [] };
+    if (!selectedPeriod) return { basic: [], genie: [], chartData: [], allBasic: [] };
     
-    const basic = basicRecords.filter(r => r.date.startsWith(selectedPeriod) && r.type === RecordType.EXPENSE);
+    const allBasic = basicRecords.filter(r => r.date.startsWith(selectedPeriod));
+    const basic = allBasic.filter(r => r.type === RecordType.EXPENSE);
     const genie = genieRecords.filter(r => {
       const date = new Date(r.date);
       let month = date.getMonth();
@@ -1437,7 +1495,7 @@ const StatsPage = ({
     });
 
     const chartData = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
-    return { basic, genie, chartData };
+    return { basic, genie, chartData, allBasic };
   }, [selectedPeriod, basicRecords, genieRecords, settings.genieBillingDay, t]);
 
   const COLORS = ['#2563eb', '#7c3aed', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#ec4899'];
@@ -1479,7 +1537,7 @@ const StatsPage = ({
               {t.hideName}
             </label>
             <button 
-              onClick={() => onExportFullPeriodPdf(selectedPeriod, periodData.basic, periodData.genie, hideNameInExport)}
+              onClick={() => onExportFullPeriodPdf(selectedPeriod, periodData.allBasic, periodData.genie, hideNameInExport)}
               className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
             >
               <FileDown size={16} /> {t.exportPdf}
@@ -1487,10 +1545,8 @@ const StatsPage = ({
           </div>
         </div>
 
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="h-64 w-full relative overflow-hidden"
+        <div 
+          className="h-64 w-full relative overflow-hidden min-h-[256px]"
         >
           {isMounted && periodData.chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
@@ -1519,7 +1575,7 @@ const StatsPage = ({
               {t.noRecords}
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* Search Functionality */}
@@ -1638,7 +1694,10 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
         name: formData.name,
         totalAmount: Number(formData.amount),
         date: formData.date,
+        category: formData.category,
+        paymentMethod: formData.paymentMethod,
         participants: formData.participants.map(p => ({
+          id: Date.now().toString() + Math.random().toString(36).substring(7),
           name: p.name,
           amount: Number(p.amount),
           paid: 0
@@ -1651,8 +1710,9 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
           name: `${t.split}: ${formData.name}`,
           amount: Number(formData.amount),
           date: formData.date,
-          category: Category.OTHER,
-          type: RecordType.EXPENSE
+          category: formData.category,
+          type: RecordType.EXPENSE,
+          paymentMethod: formData.paymentMethod
         }, false);
       }
     }
@@ -1758,37 +1818,35 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
           </div>
         )}
 
-        {mode !== 'SPLIT' && (
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.paymentMethod}</label>
-              <select 
-                value={formData.paymentMethod}
-                onChange={e => setFormData({ ...formData, paymentMethod: e.target.value as PaymentMethod })}
-                className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
-              >
-                {Object.entries(PaymentMethod).map(([key, val]) => (
-                  <option key={key} value={val}>{t.paymentMethods[val]}</option>
-                ))}
-              </select>
-            </div>
-            
-            {formData.paymentMethod === PaymentMethod.CREDIT_CARD && formData.type === RecordType.EXPENSE && (
-              <label className="flex items-center gap-3 p-4 bg-purple-50 rounded-2xl cursor-pointer active:scale-[0.99] transition-all border border-purple-100">
-                <input 
-                  type="checkbox" 
-                  checked={formData.paidByGenie}
-                  onChange={e => setFormData({ ...formData, paidByGenie: e.target.checked })}
-                  className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
-                />
-                <div>
-                  <span className="text-sm font-bold text-purple-700 block">{t.geniePay}</span>
-                  <span className="text-[10px] text-purple-500 block">Only record, do not deduct from balance</span>
-                </div>
-              </label>
-            )}
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.paymentMethod}</label>
+            <select 
+              value={formData.paymentMethod}
+              onChange={e => setFormData({ ...formData, paymentMethod: e.target.value as PaymentMethod })}
+              className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
+            >
+              {Object.entries(PaymentMethod).map(([key, val]) => (
+                <option key={key} value={val}>{t.paymentMethods[val]}</option>
+              ))}
+            </select>
           </div>
-        )}
+          
+          {mode !== 'SPLIT' && formData.paymentMethod === PaymentMethod.CREDIT_CARD && formData.type === RecordType.EXPENSE && (
+            <label className="flex items-center gap-3 p-4 bg-purple-50 rounded-2xl cursor-pointer active:scale-[0.99] transition-all border border-purple-100">
+              <input 
+                type="checkbox" 
+                checked={formData.paidByGenie}
+                onChange={e => setFormData({ ...formData, paidByGenie: e.target.checked })}
+                className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+              />
+              <div>
+                <span className="text-sm font-bold text-purple-700 block">{t.geniePay}</span>
+                <span className="text-[10px] text-purple-500 block">Only record, do not deduct from balance</span>
+              </div>
+            </label>
+          )}
+        </div>
 
         {mode === 'SPLIT' && (
           <div className="space-y-3 pt-2">
@@ -2119,7 +2177,7 @@ export default function App() {
     if (shouldSwitchTab) setActiveTab('DASHBOARD');
   };
 
-  const handleAddGenie = (data: Omit<GeniePayRecord, 'id'>) => {
+  const handleAddGenie = (data: Omit<GeniePayRecord, 'id' | 'isPaid'>) => {
     setGenieRecords(prev => [...prev, { ...data, id: generateId(), isPaid: false }]);
     setActiveTab('GENIE');
   };
@@ -2414,24 +2472,36 @@ export default function App() {
         exportData={exportData} 
         importData={importData} 
       />
-      <DetailModal 
-        selectedRecord={selectedRecord} 
-        setSelectedRecord={setSelectedRecord} 
-        isEditMode={isEditMode} 
-        setIsEditMode={setIsEditMode} 
-        t={t} 
-        formatCurrency={formatCurrency} 
-        handleUpdateRecord={handleUpdateRecord} 
-        handleDeleteRecord={handleDeleteRecord} 
-      />
-      <RepaymentModal 
-        repaymentData={repaymentData} 
-        setRepaymentData={setRepaymentData} 
-        t={t} 
-        formatCurrency={formatCurrency} 
-        handleRepay={handleRepay} 
-      />
-      <ConfirmModal confirmData={confirmData} setConfirmData={setConfirmData} t={t} />
+      <AnimatePresence>
+        {selectedRecord && (
+          <DetailModal 
+            selectedRecord={selectedRecord} 
+            setSelectedRecord={setSelectedRecord} 
+            isEditMode={isEditMode} 
+            setIsEditMode={setIsEditMode} 
+            t={t} 
+            formatCurrency={formatCurrency} 
+            handleUpdateRecord={handleUpdateRecord} 
+            handleDeleteRecord={handleDeleteRecord} 
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {repaymentData && (
+          <RepaymentModal 
+            repaymentData={repaymentData} 
+            setRepaymentData={setRepaymentData} 
+            t={t} 
+            formatCurrency={formatCurrency} 
+            handleRepay={handleRepay} 
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {confirmData && (
+          <ConfirmModal confirmData={confirmData} setConfirmData={setConfirmData} t={t} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
