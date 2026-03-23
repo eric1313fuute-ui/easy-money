@@ -33,7 +33,8 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Eye,
-  EyeOff
+  EyeOff,
+  Calculator as CalculatorIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -63,6 +64,105 @@ import { translations } from './translations';
 const generateId = () => Math.random().toString(36).substr(2, 9);
 const formatCurrency = (amount: number) => new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(amount);
 const getToday = () => new Date().toISOString().split('T')[0];
+
+const Calculator = ({ onConfirm, onCancel, initialValue, t }: { onConfirm: (val: number) => void, onCancel: () => void, initialValue: string, t: any }) => {
+  const [display, setDisplay] = useState(initialValue || '0');
+  const [prevValue, setPrevValue] = useState<number | null>(null);
+  const [operator, setOperator] = useState<string | null>(null);
+  const [waitingForOperand, setWaitingForOperand] = useState(false);
+
+  const inputDigit = (digit: string) => {
+    if (waitingForOperand) {
+      setDisplay(digit);
+      setWaitingForOperand(false);
+    } else {
+      setDisplay(display === '0' ? digit : display + digit);
+    }
+  };
+
+  const inputDot = () => {
+    if (waitingForOperand) {
+      setDisplay('0.');
+      setWaitingForOperand(false);
+    } else if (display.indexOf('.') === -1) {
+      setDisplay(display + '.');
+    }
+  };
+
+  const clear = () => {
+    setDisplay('0');
+    setPrevValue(null);
+    setOperator(null);
+    setWaitingForOperand(false);
+  };
+
+  const performOperation = (nextOperator: string) => {
+    const inputValue = parseFloat(display);
+
+    if (prevValue == null) {
+      setPrevValue(inputValue);
+    } else if (operator) {
+      const currentValue = prevValue || 0;
+      let newValue = currentValue;
+
+      if (operator === '+') newValue = currentValue + inputValue;
+      else if (operator === '-') newValue = currentValue - inputValue;
+      else if (operator === '*') newValue = currentValue * inputValue;
+      else if (operator === '/') newValue = currentValue / inputValue;
+
+      setPrevValue(newValue);
+      setDisplay(String(newValue));
+    }
+
+    setWaitingForOperand(true);
+    setOperator(nextOperator);
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+    >
+      <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-[280px] overflow-hidden border border-slate-100">
+        <div className="bg-slate-900 p-6 text-right">
+          <div className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">{t.calculator}</div>
+          <div className="text-white text-3xl font-mono font-bold truncate">{display}</div>
+        </div>
+        <div className="p-4 grid grid-cols-4 gap-2 bg-slate-50">
+          {['7', '8', '9', '/'].map(btn => (
+            <button key={btn} type="button" onClick={() => btn === '/' ? performOperation('/') : inputDigit(btn)} className={`h-12 rounded-xl font-bold transition-all active:scale-95 ${btn === '/' ? 'bg-indigo-100 text-indigo-600' : 'bg-white text-slate-700 shadow-sm'}`}>{btn}</button>
+          ))}
+          {['4', '5', '6', '*'].map(btn => (
+            <button key={btn} type="button" onClick={() => btn === '*' ? performOperation('*') : inputDigit(btn)} className={`h-12 rounded-xl font-bold transition-all active:scale-95 ${btn === '*' ? 'bg-indigo-100 text-indigo-600' : 'bg-white text-slate-700 shadow-sm'}`}>{btn}</button>
+          ))}
+          {['1', '2', '3', '-'].map(btn => (
+            <button key={btn} type="button" onClick={() => btn === '-' ? performOperation('-') : inputDigit(btn)} className={`h-12 rounded-xl font-bold transition-all active:scale-95 ${btn === '-' ? 'bg-indigo-100 text-indigo-600' : 'bg-white text-slate-700 shadow-sm'}`}>{btn}</button>
+          ))}
+          {['0', '.', 'C', '+'].map(btn => (
+            <button key={btn} type="button" onClick={() => btn === 'C' ? clear() : btn === '+' ? performOperation('+') : btn === '.' ? inputDot() : inputDigit(btn)} className={`h-12 rounded-xl font-bold transition-all active:scale-95 ${btn === 'C' ? 'bg-red-50 text-red-500' : btn === '+' ? 'bg-indigo-100 text-indigo-600' : 'bg-white text-slate-700 shadow-sm'}`}>{btn}</button>
+          ))}
+          <button type="button" onClick={onCancel} className="col-span-2 h-12 bg-slate-200 text-slate-600 rounded-xl font-bold active:scale-95 transition-all">{t.cancel}</button>
+          <button type="button" onClick={() => {
+            if (operator && !waitingForOperand) {
+              const inputValue = parseFloat(display);
+              const currentValue = prevValue || 0;
+              let newValue = currentValue;
+              if (operator === '+') newValue = currentValue + inputValue;
+              else if (operator === '-') newValue = currentValue - inputValue;
+              else if (operator === '*') newValue = currentValue * inputValue;
+              else if (operator === '/') newValue = currentValue / inputValue;
+              onConfirm(newValue);
+            } else {
+              onConfirm(parseFloat(display));
+            }
+          }} className="col-span-2 h-12 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-all">OK</button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const RecordItem: React.FC<{ record: any, onClick: () => void, t: any }> = ({ record, onClick, t }) => {
   const isGenie = record.source === 'GENIE';
@@ -96,6 +196,11 @@ const RecordItem: React.FC<{ record: any, onClick: () => void, t: any }> = ({ re
         <div>
           <div className="flex items-center gap-2">
             <p className="font-bold text-slate-800 text-[15px]">{record.name}</p>
+            {record.source === 'BASIC' && record.type === RecordType.EXPENSE && record.includeInBudget === false && (
+              <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
+                No Budget
+              </span>
+            )}
             {isGenie && (
               <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
                 {t.geniePays}
@@ -285,29 +390,93 @@ const SettingsModal = ({
               />
             </div>
 
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.frequentParticipants}</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(settings.frequentParticipants || []).map((name, idx) => (
+                  <div key={idx} className="flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-indigo-100">
+                    {name}
+                    <button onClick={() => {
+                      const newList = (settings.frequentParticipants || []).filter((_, i) => i !== idx);
+                      setSettings({ ...settings, frequentParticipants: newList });
+                    }} className="text-indigo-400 hover:text-indigo-600"><X size={12} /></button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  id="new-participant"
+                  placeholder="Add name..."
+                  className="flex-1 bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const input = e.currentTarget;
+                      const name = input.value.trim();
+                      if (name && !(settings.frequentParticipants || []).includes(name)) {
+                        setSettings({ ...settings, frequentParticipants: [...(settings.frequentParticipants || []), name] });
+                        input.value = '';
+                      }
+                    }
+                  }}
+                />
+                <button 
+                  onClick={() => {
+                    const input = document.getElementById('new-participant') as HTMLInputElement;
+                    const name = input.value.trim();
+                    if (name && !(settings.frequentParticipants || []).includes(name)) {
+                      setSettings({ ...settings, frequentParticipants: [...(settings.frequentParticipants || []), name] });
+                      input.value = '';
+                    }
+                  }}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-2xl font-bold text-sm"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.recurring}</label>
               <div className="space-y-2">
                 {recurringPayments.map(rp => (
                   <div key={rp.id} className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl">
-                    <div>
+                    <div className="flex-1">
                       <p className="font-bold text-slate-700 text-sm">{rp.name}</p>
                       <p className="text-slate-400 text-[10px]">
                         {formatCurrency(rp.amount)} • {rp.period === RecurringPeriod.MONTHLY ? `${t.monthly} (${rp.billingDay}${t.daySuffix})` : t.weekly}
                       </p>
                     </div>
-                    <button 
-                      onClick={() => setConfirmData({
-                        title: t.confirmDelete,
-                        onConfirm: () => {
-                          setRecurringPayments(prev => prev.filter(r => r.id !== rp.id));
-                          setConfirmData(null);
-                        }
-                      })} 
-                      className="text-red-400 p-2"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => {
+                          setNewRecurring({
+                            id: rp.id,
+                            name: rp.name,
+                            amount: String(rp.amount),
+                            period: rp.period,
+                            target: rp.target,
+                            billingDay: rp.billingDay || 1
+                          });
+                          setIsAddingRecurring(true);
+                        }}
+                        className="text-indigo-400 p-2 hover:bg-indigo-50 rounded-full transition-colors"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => setConfirmData({
+                          title: t.confirmDelete,
+                          onConfirm: () => {
+                            setRecurringPayments(prev => prev.filter(r => r.id !== rp.id));
+                            setConfirmData(null);
+                          }
+                        })} 
+                        className="text-red-400 p-2 hover:bg-red-50 rounded-full transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))}
                 
@@ -329,6 +498,14 @@ const SettingsModal = ({
                         className="flex-1 bg-white border-none rounded-xl px-3 py-2 text-sm"
                       />
                       <select 
+                        value={newRecurring.target}
+                        onChange={e => setNewRecurring({ ...newRecurring, target: e.target.value as 'BASIC' | 'GENIE' })}
+                        className="w-24 bg-white border-none rounded-xl px-3 py-2 text-xs"
+                      >
+                        <option value="BASIC">{t.basic}</option>
+                        <option value="GENIE">{t.geniePay}</option>
+                      </select>
+                      <select 
                         value={newRecurring.period}
                         onChange={e => setNewRecurring({ ...newRecurring, period: e.target.value as RecurringPeriod })}
                         className="w-24 bg-white border-none rounded-xl px-3 py-2 text-xs"
@@ -349,7 +526,10 @@ const SettingsModal = ({
                     </div>
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => setIsAddingRecurring(false)}
+                        onClick={() => {
+                          setIsAddingRecurring(false);
+                          setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
+                        }}
                         className="flex-1 py-2 bg-slate-200 text-slate-600 rounded-xl text-xs font-bold"
                       >
                         {t.cancel}
@@ -357,15 +537,28 @@ const SettingsModal = ({
                       <button 
                         onClick={() => {
                           if (newRecurring.name && newRecurring.amount) {
-                            setRecurringPayments(prev => [...prev, {
-                              id: generateId(),
-                              name: newRecurring.name,
-                              amount: Number(newRecurring.amount),
-                              period: newRecurring.period,
-                              category: Category.OTHER,
-                              target: newRecurring.target,
-                              billingDay: newRecurring.billingDay || 1
-                            }]);
+                            if (newRecurring.id) {
+                              // Update existing
+                              setRecurringPayments(prev => prev.map(r => r.id === newRecurring.id ? {
+                                ...r,
+                                name: newRecurring.name,
+                                amount: Number(newRecurring.amount),
+                                period: newRecurring.period,
+                                target: newRecurring.target,
+                                billingDay: newRecurring.billingDay || 1
+                              } : r));
+                            } else {
+                              // Add new
+                              setRecurringPayments(prev => [...prev, {
+                                id: generateId(),
+                                name: newRecurring.name,
+                                amount: Number(newRecurring.amount),
+                                period: newRecurring.period,
+                                category: Category.OTHER,
+                                target: newRecurring.target,
+                                billingDay: newRecurring.billingDay || 1
+                              }]);
+                            }
                             setIsAddingRecurring(false);
                             setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
                           }
@@ -378,7 +571,10 @@ const SettingsModal = ({
                   </div>
                 ) : (
                   <button 
-                    onClick={() => setIsAddingRecurring(true)}
+                    onClick={() => {
+                      setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
+                      setIsAddingRecurring(true);
+                    }}
                     className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-bold hover:bg-slate-50 transition-all"
                   >
                     + Add Recurring
@@ -1080,6 +1276,7 @@ const Dashboard = ({
     const expense = records
       .reduce((sum, r) => {
         if (r.type === RecordType.EXPENSE) {
+          if (r.includeInBudget === false) return sum;
           return sum + r.amount;
         } else if (r.type === RecordType.INCOME && r.isRepayment) {
           return sum - r.amount;
@@ -1246,7 +1443,12 @@ const Dashboard = ({
                     <span className="text-xs font-bold">{r.name.charAt(0)}</span>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-700">{r.name}</p>
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs font-bold text-slate-700">{r.name}</p>
+                      {r.type === RecordType.EXPENSE && r.includeInBudget === false && (
+                        <span className="text-[8px] bg-slate-100 text-slate-400 px-1 rounded uppercase font-bold tracking-tighter">No Budget</span>
+                      )}
+                    </div>
                     <p className="text-[10px] text-slate-400">{t.categories[r.category]}</p>
                   </div>
                 </div>
@@ -1453,17 +1655,19 @@ const StatsPage = ({
 
   const periods = useMemo(() => {
     const p = new Set<string>();
-    basicRecords.forEach(r => p.add(r.date.substring(0, 7)));
-    genieRecords.forEach(r => {
-      const date = new Date(r.date);
-      let month = date.getMonth();
-      let year = date.getFullYear();
-      if (date.getDate() > settings.genieBillingDay) {
+    const getCycleKey = (dateStr: string) => {
+      const d = new Date(dateStr);
+      let month = d.getMonth();
+      let year = d.getFullYear();
+      if (d.getDate() > settings.genieBillingDay) {
         month += 1;
         if (month > 11) { month = 0; year += 1; }
       }
-      p.add(`${year}-${(month + 1).toString().padStart(2, '0')}`);
-    });
+      return `${year}-${(month + 1).toString().padStart(2, '0')}`;
+    };
+
+    basicRecords.forEach(r => p.add(getCycleKey(r.date)));
+    genieRecords.forEach(r => p.add(getCycleKey(r.date)));
     return Array.from(p).sort((a, b) => b.localeCompare(a));
   }, [basicRecords, genieRecords, settings.genieBillingDay]);
 
@@ -1471,24 +1675,25 @@ const StatsPage = ({
     if (periods.length > 0 && !selectedPeriod) {
       setSelectedPeriod(periods[0]);
     }
-  }, [periods]);
+  }, [periods, selectedPeriod]);
 
   const periodData = useMemo(() => {
     if (!selectedPeriod) return { basic: [], genie: [], chartData: [], allBasic: [] };
     
-    const allBasic = basicRecords.filter(r => r.date.startsWith(selectedPeriod));
-    const basic = allBasic.filter(r => r.type === RecordType.EXPENSE);
-    const genie = genieRecords.filter(r => {
-      const date = new Date(r.date);
-      let month = date.getMonth();
-      let year = date.getFullYear();
-      if (date.getDate() > settings.genieBillingDay) {
+    const getCycleKey = (dateStr: string) => {
+      const d = new Date(dateStr);
+      let month = d.getMonth();
+      let year = d.getFullYear();
+      if (d.getDate() > settings.genieBillingDay) {
         month += 1;
         if (month > 11) { month = 0; year += 1; }
       }
-      const cycleKey = `${year}-${(month + 1).toString().padStart(2, '0')}`;
-      return cycleKey === selectedPeriod;
-    });
+      return `${year}-${(month + 1).toString().padStart(2, '0')}`;
+    };
+
+    const allBasic = basicRecords.filter(r => getCycleKey(r.date) === selectedPeriod);
+    const basic = allBasic.filter(r => r.type === RecordType.EXPENSE);
+    const genie = genieRecords.filter(r => getCycleKey(r.date) === selectedPeriod);
 
     const combined = [...basic, ...genie];
     const categoryMap: Record<string, number> = {};
@@ -1649,12 +1854,13 @@ const StatsPage = ({
   );
 };
 
-const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit }: { 
+const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit, settings }: { 
   t: any, 
   getToday: () => string, 
   handleAddBasic: (data: any, switchTab?: boolean) => void,
   handleAddGenie: (data: any) => void,
-  handleAddSplit: (data: any) => void
+  handleAddSplit: (data: any) => void,
+  settings: AppSettings
 }) => {
   const [mode, setMode] = useState<'BASIC' | 'SPLIT'>('BASIC');
   const [formData, setFormData] = useState({
@@ -1666,8 +1872,13 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
     paymentMethod: PaymentMethod.CASH,
     participants: [{ name: '', amount: '' }],
     syncToBasic: false,
-    paidByGenie: false
+    paidByGenie: false,
+    includeInBudget: true
   });
+
+  const [calcTarget, setCalcTarget] = useState<{ type: 'TOTAL' | 'PARTICIPANT', index?: number } | null>(null);
+
+  const frequentNames = settings.frequentParticipants || [];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1689,7 +1900,8 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
           date: formData.date,
           category: formData.category,
           type: formData.type,
-          paymentMethod: formData.paymentMethod
+          paymentMethod: formData.paymentMethod,
+          includeInBudget: formData.includeInBudget
         });
       }
     } else if (mode === 'SPLIT') {
@@ -1715,7 +1927,8 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
           date: formData.date,
           category: formData.category,
           type: RecordType.EXPENSE,
-          paymentMethod: formData.paymentMethod
+          paymentMethod: formData.paymentMethod,
+          includeInBudget: formData.includeInBudget
         }, false);
       }
     }
@@ -1761,14 +1974,23 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.amount}</label>
-            <input 
-              type="number" 
-              required
-              value={formData.amount}
-              onChange={e => setFormData({ ...formData, amount: e.target.value })}
-              className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all"
-              placeholder="0"
-            />
+            <div className="relative">
+              <input 
+                type="number" 
+                required
+                value={formData.amount}
+                onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 transition-all pr-12"
+                placeholder="0"
+              />
+              <button 
+                type="button"
+                onClick={() => setCalcTarget({ type: 'TOTAL' })}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+              >
+                <CalculatorIcon size={18} />
+              </button>
+            </div>
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.date}</label>
@@ -1834,6 +2056,27 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
               ))}
             </select>
           </div>
+
+          {formData.type === RecordType.EXPENSE && (
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${formData.includeInBudget ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-400'}`}>
+                  <Target size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-700">{t.includeInBudget}</p>
+                  <p className="text-[10px] text-slate-400">預設為開啟</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setFormData({ ...formData, includeInBudget: !formData.includeInBudget })}
+                className={`w-12 h-6 rounded-full transition-all relative ${formData.includeInBudget ? 'bg-indigo-600' : 'bg-slate-300'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.includeInBudget ? 'left-7' : 'left-1'}`}></div>
+              </button>
+            </div>
+          )}
           
           {mode !== 'SPLIT' && formData.paymentMethod === PaymentMethod.CREDIT_CARD && formData.type === RecordType.EXPENSE && (
             <label className="flex items-center gap-3 p-4 bg-purple-50 rounded-2xl cursor-pointer active:scale-[0.99] transition-all border border-purple-100">
@@ -1854,6 +2097,32 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
         {mode === 'SPLIT' && (
           <div className="space-y-3 pt-2">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.splitTarget}</label>
+            
+            {frequentNames.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className="text-[10px] font-bold text-slate-400 self-center">{t.frequentParticipants}:</span>
+                {frequentNames.map(name => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => {
+                      const lastIdx = formData.participants.length - 1;
+                      if (formData.participants[lastIdx].name === '') {
+                        const newP = [...formData.participants];
+                        newP[lastIdx].name = name;
+                        setFormData({ ...formData, participants: newP });
+                      } else {
+                        setFormData({ ...formData, participants: [...formData.participants, { name, amount: '' }] });
+                      }
+                    }}
+                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold rounded-lg transition-colors"
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {formData.participants.map((p, idx) => (
               <div key={idx} className="flex gap-2">
                 <input 
@@ -1867,17 +2136,26 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
                   }}
                   className="flex-1 bg-slate-50 border-none rounded-xl px-3 py-2 text-sm"
                 />
-                <input 
-                  type="number" 
-                  placeholder="Amount"
-                  value={p.amount}
-                  onChange={e => {
-                    const newP = [...formData.participants];
-                    newP[idx].amount = e.target.value;
-                    setFormData({ ...formData, participants: newP });
-                  }}
-                  className="w-24 bg-slate-50 border-none rounded-xl px-3 py-2 text-sm"
-                />
+                <div className="relative w-28">
+                  <input 
+                    type="number" 
+                    placeholder="Amount"
+                    value={p.amount}
+                    onChange={e => {
+                      const newP = [...formData.participants];
+                      newP[idx].amount = e.target.value;
+                      setFormData({ ...formData, participants: newP });
+                    }}
+                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-sm pr-8"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setCalcTarget({ type: 'PARTICIPANT', index: idx })}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-600 transition-colors"
+                  >
+                    <CalculatorIcon size={14} />
+                  </button>
+                </div>
                 <button 
                   type="button"
                   onClick={() => {
@@ -1917,6 +2195,26 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
           {t.save}
         </button>
       </motion.form>
+
+      <AnimatePresence>
+        {calcTarget && (
+          <Calculator 
+            t={t}
+            initialValue={calcTarget.type === 'TOTAL' ? formData.amount : formData.participants[calcTarget.index!].amount}
+            onConfirm={(val) => {
+              if (calcTarget.type === 'TOTAL') {
+                setFormData({ ...formData, amount: String(val) });
+              } else {
+                const newP = [...formData.participants];
+                newP[calcTarget.index!].amount = String(val);
+                setFormData({ ...formData, participants: newP });
+              }
+              setCalcTarget(null);
+            }}
+            onCancel={() => setCalcTarget(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -1935,7 +2233,7 @@ export default function App() {
       }
       return parsed;
     }
-    return { language: Language.ZH, genieBillingDay: 10, initialBalance: 20000, dailyBudget: 500 };
+    return { language: Language.ZH, genieBillingDay: 10, initialBalance: 20000, dailyBudget: 500, frequentParticipants: [] };
   });
 
   const [basicRecords, setBasicRecords] = useState<BasicRecord[]>(() => {
@@ -1964,7 +2262,7 @@ export default function App() {
   const [confirmData, setConfirmData] = useState<{ title: string, onConfirm: () => void } | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAddingRecurring, setIsAddingRecurring] = useState(false);
-  const [newRecurring, setNewRecurring] = useState({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC' as 'BASIC' | 'GENIE', billingDay: 1 });
+  const [newRecurring, setNewRecurring] = useState<{ id?: string, name: string, amount: string, period: RecurringPeriod, target: 'BASIC' | 'GENIE', billingDay: number }>({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
 
   const t = translations[settings.language];
 
@@ -2082,7 +2380,13 @@ export default function App() {
     const income = cycleBasic.filter(r => r.type === RecordType.INCOME).reduce((sum, r) => sum + r.amount, 0);
     const expense = cycleBasic.filter(r => r.type === RecordType.EXPENSE).reduce((sum, r) => sum + r.amount, 0);
     
-    const totalBalance = basicRecords.reduce((sum, r) => r.type === RecordType.INCOME ? sum + r.amount : sum - r.amount, settings.initialBalance);
+    const totalBalance = basicRecords.reduce((sum, r) => {
+      if (r.type === RecordType.INCOME) return sum + r.amount;
+      // Credit card expenses are only deducted when paid
+      if (r.paymentMethod === PaymentMethod.CREDIT_CARD && !r.isPaid) return sum;
+      return sum - r.amount;
+    }, settings.initialBalance) - genieRecords.reduce((sum, r) => r.isPaid ? sum + r.amount : sum, 0);
+
     const remainingBudget = 0; // Removed monthly budget
 
     const todayStr = getToday();
@@ -2090,6 +2394,7 @@ export default function App() {
     const dailyExpense = dailyRecords
       .reduce((sum, r) => {
         if (r.type === RecordType.EXPENSE) {
+          if (r.includeInBudget === false) return sum;
           return sum + r.amount;
         } else if (r.type === RecordType.INCOME && r.isRepayment) {
           return sum - r.amount;
@@ -2109,7 +2414,7 @@ export default function App() {
       dailyRecords,
       currentCycleKey
     };
-  }, [basicRecords, settings.initialBalance, settings.dailyBudget, settings.genieBillingDay]);
+  }, [basicRecords, genieRecords, settings.initialBalance, settings.dailyBudget, settings.genieBillingDay]);
 
   const genieCycles = useMemo(() => {
     const cycles: Record<string, any[]> = {};
@@ -2176,7 +2481,7 @@ export default function App() {
 
   // --- Actions ---
   const handleAddBasic = (data: Omit<BasicRecord, 'id'>, shouldSwitchTab = true) => {
-    setBasicRecords(prev => [...prev, { ...data, id: generateId() }]);
+    setBasicRecords(prev => [...prev, { ...data, id: generateId(), isPaid: data.paymentMethod === PaymentMethod.CREDIT_CARD ? false : true }]);
     if (shouldSwitchTab) setActiveTab('DASHBOARD');
   };
 
@@ -2443,7 +2748,7 @@ export default function App() {
       <main className="max-w-md mx-auto">
         {activeTab === 'DASHBOARD' && <Dashboard t={t} stats={stats} basicRecords={basicRecords} setActiveTab={setActiveTab} setSelectedRecord={setSelectedRecord} formatCurrency={formatCurrency} />}
         {activeTab === 'GENIE' && <GeniePay t={t} settings={settings} genieCycles={genieCycles} setSelectedRecord={setSelectedRecord} exportPdf={(cycle, hideName) => exportPdf(cycle.key, cycle.records, hideName)} formatCurrency={formatCurrency} toggleGeniePaid={toggleGeniePaid} />}
-        {activeTab === 'ADD' && <AddRecord t={t} getToday={getToday} handleAddBasic={handleAddBasic} handleAddGenie={handleAddGenie} handleAddSplit={handleAddSplit} />}
+        {activeTab === 'ADD' && <AddRecord t={t} getToday={getToday} handleAddBasic={handleAddBasic} handleAddGenie={handleAddGenie} handleAddSplit={handleAddSplit} settings={settings} />}
         {activeTab === 'SPLIT' && <SplitTracker t={t} splitRecords={splitRecords} setRepaymentData={setRepaymentData} setSelectedRecord={setSelectedRecord} formatCurrency={formatCurrency} />}
         {activeTab === 'STATS' && (
           <StatsPage 

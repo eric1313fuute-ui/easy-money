@@ -48,6 +48,7 @@ export interface BasicRecord {
   paymentMethod: PaymentMethod;
   isPaid?: boolean;
   isRepayment?: boolean;
+  includeInBudget?: boolean;
 }
 
 export interface GeniePayRecord {
@@ -96,6 +97,7 @@ export interface AppSettings {
   genieBillingDay: number;
   initialBalance: number;
   dailyBudget: number;
+  frequentParticipants?: string[];
 }
 
 export type Tab = 'DASHBOARD' | 'GENIE' | 'ADD' | 'SPLIT' | 'STATS';
