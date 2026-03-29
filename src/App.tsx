@@ -196,7 +196,7 @@ const RecordItem: React.FC<{ record: any, onClick: () => void, t: any }> = ({ re
         <div>
           <div className="flex items-center gap-2">
             <p className="font-bold text-slate-800 text-[15px]">{record.name}</p>
-            {record.source === 'BASIC' && record.type === RecordType.EXPENSE && record.includeInBudget === false && (
+            {record.includeInBudget === false && (
               <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
                 No Budget
               </span>
@@ -524,11 +524,21 @@ const SettingsModal = ({
                         />
                       )}
                     </div>
+                    <div className="flex items-center justify-between px-2">
+                      <span className="text-xs font-bold text-slate-500">{t.includeInBudget}</span>
+                      <button 
+                        type="button"
+                        onClick={() => setNewRecurring({ ...newRecurring, includeInBudget: !newRecurring.includeInBudget })}
+                        className={`w-10 h-5 rounded-full transition-all relative ${newRecurring.includeInBudget ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${newRecurring.includeInBudget ? 'left-5' : 'left-1'}`}></div>
+                      </button>
+                    </div>
                     <div className="flex gap-2">
                       <button 
                         onClick={() => {
                           setIsAddingRecurring(false);
-                          setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
+                          setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1, includeInBudget: true });
                         }}
                         className="flex-1 py-2 bg-slate-200 text-slate-600 rounded-xl text-xs font-bold"
                       >
@@ -545,7 +555,8 @@ const SettingsModal = ({
                                 amount: Number(newRecurring.amount),
                                 period: newRecurring.period,
                                 target: newRecurring.target,
-                                billingDay: newRecurring.billingDay || 1
+                                billingDay: newRecurring.billingDay || 1,
+                                includeInBudget: newRecurring.includeInBudget
                               } : r));
                             } else {
                               // Add new
@@ -556,11 +567,12 @@ const SettingsModal = ({
                                 period: newRecurring.period,
                                 category: Category.OTHER,
                                 target: newRecurring.target,
-                                billingDay: newRecurring.billingDay || 1
+                                billingDay: newRecurring.billingDay || 1,
+                                includeInBudget: newRecurring.includeInBudget
                               }]);
                             }
                             setIsAddingRecurring(false);
-                            setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
+                            setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1, includeInBudget: true });
                           }
                         }}
                         className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
@@ -572,7 +584,7 @@ const SettingsModal = ({
                 ) : (
                   <button 
                     onClick={() => {
-                      setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
+                      setNewRecurring({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1, includeInBudget: true });
                       setIsAddingRecurring(true);
                     }}
                     className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-bold hover:bg-slate-50 transition-all"
@@ -627,11 +639,13 @@ const DetailModal = ({
 }) => {
   const { type, data } = selectedRecord;
   const [participants, setParticipants] = useState(data.participants || []);
+  const [includeInBudget, setIncludeInBudget] = useState(data.includeInBudget !== false);
 
   useEffect(() => {
     if (type === 'SPLIT') {
       setParticipants(data.participants || []);
     }
+    setIncludeInBudget(data.includeInBudget !== false);
   }, [selectedRecord]);
 
   return (
@@ -656,12 +670,13 @@ const DetailModal = ({
 
           <div className="p-8 pt-6 space-y-6 overflow-y-auto flex-1">
             {isEditMode ? (
-            <form onSubmit={(e) => {
+              <form onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               let updated: any = {
                 name: formData.get('name') as string,
                 date: formData.get('date') as string,
+                includeInBudget
               };
               if (type === 'SPLIT') {
                 updated.totalAmount = Number(formData.get('totalAmount'));
@@ -750,6 +765,25 @@ const DetailModal = ({
                   )}
                 </>
               )}
+              
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl ${includeInBudget ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-400'}`}>
+                    <Target size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">{t.includeInBudget}</p>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setIncludeInBudget(!includeInBudget)}
+                  className={`w-12 h-6 rounded-full transition-all relative ${includeInBudget ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${includeInBudget ? 'left-7' : 'left-1'}`}></div>
+                </button>
+              </div>
+
               <button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold shadow-lg transition-colors">{t.save}</button>
             </form>
           ) : (
@@ -776,6 +810,10 @@ const DetailModal = ({
                     <p className="font-bold text-slate-700">{t.paymentMethods[data.paymentMethod]}</p>
                   </div>
                 )}
+                <div className="bg-slate-50 p-4 rounded-2xl">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">{t.includeInBudget}</p>
+                  <p className="font-bold text-slate-700">{data.includeInBudget !== false ? t.yes : t.no}</p>
+                </div>
               </div>
 
               <div className="flex gap-4 pt-4">
@@ -1257,6 +1295,8 @@ const Dashboard = ({
   t, 
   stats, 
   basicRecords, 
+  genieRecords,
+  settings,
   setActiveTab, 
   setSelectedRecord, 
   formatCurrency 
@@ -1264,21 +1304,74 @@ const Dashboard = ({
   t: any, 
   stats: any, 
   basicRecords: BasicRecord[], 
+  genieRecords: GeniePayRecord[],
+  settings: any,
   setActiveTab: (tab: Tab) => void, 
   setSelectedRecord: (rec: any) => void, 
   formatCurrency: (val: number) => string 
 }) => {
   const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
   const [showBalance, setShowBalance] = useState(false);
+  const [selectedCycle, setSelectedCycle] = useState(stats.currentCycleKey);
+
+  const periods = useMemo(() => {
+    const p = new Set<string>();
+    const getCycleKey = (dateStr: string) => {
+      const d = new Date(dateStr);
+      let month = d.getMonth();
+      let year = d.getFullYear();
+      if (d.getDate() > settings.genieBillingDay) {
+        month += 1;
+        if (month > 11) { month = 0; year += 1; }
+      }
+      return `${year}/${String(month + 1).padStart(2, '0')}`;
+    };
+
+    basicRecords.forEach(r => p.add(getCycleKey(r.date)));
+    genieRecords.forEach(r => p.add(getCycleKey(r.date)));
+    p.add(stats.currentCycleKey); // Ensure current cycle is always an option
+    return Array.from(p).sort((a, b) => b.localeCompare(a));
+  }, [basicRecords, genieRecords, settings.genieBillingDay, stats.currentCycleKey]);
+
+  const cycleData = useMemo(() => {
+    const getCycleKey = (dateStr: string) => {
+      const d = new Date(dateStr);
+      let month = d.getMonth();
+      let year = d.getFullYear();
+      if (d.getDate() > settings.genieBillingDay) {
+        month += 1;
+        if (month > 11) { month = 0; year += 1; }
+      }
+      return `${year}/${String(month + 1).padStart(2, '0')}`;
+    };
+
+    const cycleBasic = basicRecords.filter(r => getCycleKey(r.date) === selectedCycle);
+    const income = cycleBasic.filter(r => r.type === RecordType.INCOME).reduce((sum, r) => sum + r.amount, 0);
+    const expense = cycleBasic.filter(r => r.type === RecordType.EXPENSE).reduce((sum, r) => sum + r.amount, 0);
+    
+    return { income, expense };
+  }, [basicRecords, selectedCycle, settings.genieBillingDay]);
+
+  const changeCycle = (direction: number) => {
+    const currentIndex = periods.indexOf(selectedCycle);
+    if (currentIndex !== -1) {
+      const newIndex = currentIndex + direction;
+      if (newIndex >= 0 && newIndex < periods.length) {
+        setSelectedCycle(periods[newIndex]);
+      }
+    }
+  };
 
   const dailyData = useMemo(() => {
-    const records = basicRecords.filter(r => r.date === viewDate);
+    const dailyBasic = basicRecords.filter(r => r.date === viewDate);
+    const dailyGenie = genieRecords.filter(r => r.date === viewDate).map(r => ({ ...r, type: RecordType.EXPENSE, source: 'GENIE' as const }));
+    const records = [...dailyBasic, ...dailyGenie];
     const expense = records
       .reduce((sum, r) => {
+        if (r.includeInBudget === false) return sum;
         if (r.type === RecordType.EXPENSE) {
-          if (r.includeInBudget === false) return sum;
           return sum + r.amount;
-        } else if (r.type === RecordType.INCOME && r.isRepayment) {
+        } else if (r.type === RecordType.INCOME) {
           return sum - r.amount;
         }
         return sum;
@@ -1288,7 +1381,7 @@ const Dashboard = ({
       expense,
       remaining: stats.dailyBudget - expense
     };
-  }, [basicRecords, viewDate, stats.dailyBudget]);
+  }, [basicRecords, genieRecords, viewDate, stats.dailyBudget]);
 
   const changeDate = (days: number) => {
     const d = new Date(viewDate);
@@ -1336,9 +1429,25 @@ const Dashboard = ({
                 {showBalance ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
-            <span className="bg-white/10 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-tighter text-white/60">
-              Cycle: {stats.currentCycleKey}
-            </span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => changeCycle(1)} 
+                disabled={periods.indexOf(selectedCycle) >= periods.length - 1}
+                className="text-white/40 hover:text-white disabled:opacity-30 p-1"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="bg-white/10 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-tighter text-white/60">
+                Cycle: {selectedCycle}
+              </span>
+              <button 
+                onClick={() => changeCycle(-1)} 
+                disabled={periods.indexOf(selectedCycle) <= 0}
+                className="text-white/40 hover:text-white disabled:opacity-30 p-1"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
           <h2 className="text-5xl font-bold tracking-tight">
             {showBalance ? formatCurrency(stats.balance) : '******'}
@@ -1346,6 +1455,7 @@ const Dashboard = ({
           
           <div className="grid grid-cols-2 gap-6 mt-8 pt-6 border-t border-white/10">
             <motion.div
+              key={`income-${selectedCycle}`}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
@@ -1355,9 +1465,10 @@ const Dashboard = ({
                 <ArrowDownRight size={14} className="text-emerald-400" />
                 <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">{t.income}</p>
               </div>
-              <p className="text-emerald-400 font-bold text-xl">+{formatCurrency(stats.income)}</p>
+              <p className="text-emerald-400 font-bold text-xl">+{formatCurrency(cycleData.income)}</p>
             </motion.div>
             <motion.div
+              key={`expense-${selectedCycle}`}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -1367,7 +1478,7 @@ const Dashboard = ({
                 <ArrowUpRight size={14} className="text-rose-400" />
                 <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">{t.expense}</p>
               </div>
-              <p className="text-rose-400 font-bold text-xl">-{formatCurrency(stats.expense)}</p>
+              <p className="text-rose-400 font-bold text-xl">-{formatCurrency(cycleData.expense)}</p>
             </motion.div>
           </div>
         </div>
@@ -1436,8 +1547,8 @@ const Dashboard = ({
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
               {isToday ? "Today's Details" : `${viewDate} Details`}
             </p>
-            {dailyData.records.map((r: BasicRecord) => (
-              <div key={r.id} className="flex items-center justify-between group cursor-pointer" onClick={() => setSelectedRecord({ type: 'BASIC', data: r })}>
+            {dailyData.records.map((r: any) => (
+              <div key={r.id} className="flex items-center justify-between group cursor-pointer" onClick={() => setSelectedRecord({ type: r.source || 'BASIC', data: r })}>
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${r.type === RecordType.INCOME ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                     <span className="text-xs font-bold">{r.name.charAt(0)}</span>
@@ -1445,7 +1556,12 @@ const Dashboard = ({
                   <div>
                     <div className="flex items-center gap-1">
                       <p className="text-xs font-bold text-slate-700">{r.name}</p>
-                      {r.type === RecordType.EXPENSE && r.includeInBudget === false && (
+                      {r.source === 'GENIE' && (
+                        <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider">
+                          {t.geniePays}
+                        </span>
+                      )}
+                      {r.includeInBudget === false && (
                         <span className="text-[8px] bg-slate-100 text-slate-400 px-1 rounded uppercase font-bold tracking-tighter">No Budget</span>
                       )}
                     </div>
@@ -1891,7 +2007,8 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
           amount: Number(formData.amount),
           date: formData.date,
           category: formData.category,
-          paymentMethod: formData.paymentMethod
+          paymentMethod: formData.paymentMethod,
+          includeInBudget: formData.includeInBudget
         });
       } else {
         handleAddBasic({
@@ -2057,26 +2174,24 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
             </select>
           </div>
 
-          {formData.type === RecordType.EXPENSE && (
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${formData.includeInBudget ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-400'}`}>
-                  <Target size={18} />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-700">{t.includeInBudget}</p>
-                  <p className="text-[10px] text-slate-400">預設為開啟</p>
-                </div>
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${formData.includeInBudget ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-400'}`}>
+                <Target size={18} />
               </div>
-              <button 
-                type="button"
-                onClick={() => setFormData({ ...formData, includeInBudget: !formData.includeInBudget })}
-                className={`w-12 h-6 rounded-full transition-all relative ${formData.includeInBudget ? 'bg-indigo-600' : 'bg-slate-300'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.includeInBudget ? 'left-7' : 'left-1'}`}></div>
-              </button>
+              <div>
+                <p className="text-xs font-bold text-slate-700">{t.includeInBudget}</p>
+                <p className="text-[10px] text-slate-400">預設為開啟</p>
+              </div>
             </div>
-          )}
+            <button 
+              type="button"
+              onClick={() => setFormData({ ...formData, includeInBudget: !formData.includeInBudget })}
+              className={`w-12 h-6 rounded-full transition-all relative ${formData.includeInBudget ? 'bg-indigo-600' : 'bg-slate-300'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.includeInBudget ? 'left-7' : 'left-1'}`}></div>
+            </button>
+          </div>
           
           {mode !== 'SPLIT' && formData.paymentMethod === PaymentMethod.CREDIT_CARD && formData.type === RecordType.EXPENSE && (
             <label className="flex items-center gap-3 p-4 bg-purple-50 rounded-2xl cursor-pointer active:scale-[0.99] transition-all border border-purple-100">
@@ -2262,7 +2377,7 @@ export default function App() {
   const [confirmData, setConfirmData] = useState<{ title: string, onConfirm: () => void } | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAddingRecurring, setIsAddingRecurring] = useState(false);
-  const [newRecurring, setNewRecurring] = useState<{ id?: string, name: string, amount: string, period: RecurringPeriod, target: 'BASIC' | 'GENIE', billingDay: number }>({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1 });
+  const [newRecurring, setNewRecurring] = useState<{ id?: string, name: string, amount: string, period: RecurringPeriod, target: 'BASIC' | 'GENIE', billingDay: number, includeInBudget: boolean }>({ name: '', amount: '', period: RecurringPeriod.MONTHLY, target: 'BASIC', billingDay: 1, includeInBudget: true });
 
   const t = translations[settings.language];
 
@@ -2300,6 +2415,7 @@ export default function App() {
               date: todayStr,
               category: rp.category,
               paymentMethod: PaymentMethod.CASH,
+              includeInBudget: rp.includeInBudget !== false,
             };
 
             if (rp.target === 'BASIC') {
@@ -2332,6 +2448,7 @@ export default function App() {
               date: todayStr,
               category: rp.category,
               paymentMethod: PaymentMethod.CASH,
+              includeInBudget: rp.includeInBudget !== false,
             };
 
             if (rp.target === 'BASIC') {
@@ -2390,13 +2507,15 @@ export default function App() {
     const remainingBudget = 0; // Removed monthly budget
 
     const todayStr = getToday();
-    const dailyRecords = basicRecords.filter(r => r.date === todayStr);
+    const dailyBasic = basicRecords.filter(r => r.date === todayStr);
+    const dailyGenie = genieRecords.filter(r => r.date === todayStr).map(r => ({ ...r, type: RecordType.EXPENSE, source: 'GENIE' as const }));
+    const dailyRecords = [...dailyBasic, ...dailyGenie];
     const dailyExpense = dailyRecords
       .reduce((sum, r) => {
+        if (r.includeInBudget === false) return sum;
         if (r.type === RecordType.EXPENSE) {
-          if (r.includeInBudget === false) return sum;
           return sum + r.amount;
-        } else if (r.type === RecordType.INCOME && r.isRepayment) {
+        } else if (r.type === RecordType.INCOME) {
           return sum - r.amount;
         }
         return sum;
@@ -2746,7 +2865,7 @@ export default function App() {
       <Header t={t} setIsSettingsOpen={setIsSettingsOpen} />
       
       <main className="max-w-md mx-auto">
-        {activeTab === 'DASHBOARD' && <Dashboard t={t} stats={stats} basicRecords={basicRecords} setActiveTab={setActiveTab} setSelectedRecord={setSelectedRecord} formatCurrency={formatCurrency} />}
+        {activeTab === 'DASHBOARD' && <Dashboard t={t} stats={stats} basicRecords={basicRecords} genieRecords={genieRecords} settings={settings} setActiveTab={setActiveTab} setSelectedRecord={setSelectedRecord} formatCurrency={formatCurrency} />}
         {activeTab === 'GENIE' && <GeniePay t={t} settings={settings} genieCycles={genieCycles} setSelectedRecord={setSelectedRecord} exportPdf={(cycle, hideName) => exportPdf(cycle.key, cycle.records, hideName)} formatCurrency={formatCurrency} toggleGeniePaid={toggleGeniePaid} />}
         {activeTab === 'ADD' && <AddRecord t={t} getToday={getToday} handleAddBasic={handleAddBasic} handleAddGenie={handleAddGenie} handleAddSplit={handleAddSplit} settings={settings} />}
         {activeTab === 'SPLIT' && <SplitTracker t={t} splitRecords={splitRecords} setRepaymentData={setRepaymentData} setSelectedRecord={setSelectedRecord} formatCurrency={formatCurrency} />}

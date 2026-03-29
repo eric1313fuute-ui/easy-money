@@ -59,6 +59,7 @@ export interface GeniePayRecord {
   category: Category;
   paymentMethod: PaymentMethod;
   isPaid?: boolean;
+  includeInBudget?: boolean;
 }
 
 export interface SplitParticipant {
@@ -90,6 +91,7 @@ export interface RecurringPayment {
   target: 'BASIC' | 'GENIE';
   billingDay: number; // 1-31
   lastProcessed?: string; // Date string (YYYY-MM)
+  includeInBudget?: boolean;
 }
 
 export interface AppSettings {
