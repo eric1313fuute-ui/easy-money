@@ -2181,7 +2181,6 @@ const AddRecord = ({ t, getToday, handleAddBasic, handleAddGenie, handleAddSplit
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-700">{t.includeInBudget}</p>
-                <p className="text-[10px] text-slate-400">預設為開啟</p>
               </div>
             </div>
             <button 
